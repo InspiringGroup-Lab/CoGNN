@@ -1,7 +1,7 @@
 #ifndef SS_EDGE_CENTRIC_ALGO_KERNEL_H_
 #define SS_EDGE_CENTRIC_ALGO_KERNEL_H_
 
-#include "edge_centric_algo_kernel.h"
+#include "vertex_centric_algo_kernel.h"
 #include "ObliviousMapper.h"
 #include "SCIHarness.h"
 

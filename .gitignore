@@ -2,7 +2,7 @@
 *.o
 lib/
 
-algo_kernels/edge_centric/bin/
+algo_kernels/vertex_centric/bin/
 
 googletest/
 tests/bin/

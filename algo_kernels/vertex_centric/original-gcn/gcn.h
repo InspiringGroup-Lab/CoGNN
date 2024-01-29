@@ -2,7 +2,7 @@
 #define ALGO_KERNELS_EDGE_CENTRIC_GCN_GCN_H_
 
 #include "graph.h"
-#include "ss_edge_centric_algo_kernel.h"
+#include "ss_vertex_centric_algo_kernel.h"
 #include "task.h"
 #include "TaskUtil.h"
 #include "SCIHarness.h"
@@ -204,54 +204,8 @@ protected:
         uint64_t coTid, 
         int party
     ) const {
-        GNNParam& gnnParam = GNNParam::getGNNParam();
-        uint32_t epochLayerNum = getEpochLayerNum();
-        uint32_t forwardLayerNum = getForwardLayerNum();
-        uint32_t backwardLayerNum = getBackwardLayerNum();
-        bool isForward = ((iter % epochLayerNum) < forwardLayerNum); 
-        uint32_t coForwardLayer = 0;
-        if (isForward) coForwardLayer = iter % epochLayerNum;
-        else coForwardLayer = forwardLayerNum - 1 - (((iter % epochLayerNum) - forwardLayerNum) / 2);
-        bool isClient = (party == sci::ALICE);
-
-        size_t length = vertexSvv.size();
-        std::vector<uint64_t> normalizer(length);
-        for (int i = 0; i < length; ++i) {
-            normalizer[i] = vertexOutDeg[i] == 0 ? 0 : CryptoUtil::encodeDoubleAsFixedPoint(pow((double)vertexOutDeg[i] + 1, -0.5));
-        }
-
-        if (isForward) { // FORWARD
-            const ShareTensor& weight = isClient? gs.localWeight[coForwardLayer]:gs.remoteWeight[coForwardLayer];
-            TensorVecMap& vertexInterData = isClient? gs.localVertexInterDataTVs[coForwardLayer]:gs.remoteVertexInterDataTVs[coForwardLayer];
-
-            TaskComm& clientTaskComm = TaskComm::getClientInstance();
-            size_t tileNum = clientTaskComm.getTileNum();
-            size_t tileIndex = clientTaskComm.getTileIndex();
-            if (isClient && coTid == (tileIndex + 1) % tileNum) vertexInterData["h_t"] = {transpose(vertexSvv)};
-            if ((!isClient) && (coTid + 1) % tileNum == tileIndex) vertexInterData["h_t"] = {transpose(vertexSvv)};
-
-            sci::twoPartyGCNMatMul(
-                vertexSvv, 
-                weight, 
-                scaledVertexSvv,
-                coTid,
-                party
-            );
-        }
-        // The feature is scaled, take care during back layer 
-
-        if ((iter % epochLayerNum) == 0) { // Is the first forward layer
-            return;
-        }
-
-        sci::twoPartyGCNVectorScale(
-            vertexSvv, 
-            normalizer, 
-            scaledVertexSvv, 
-            true,
-            coTid, 
-            party
-        );
+        scaledVertexSvv = vertexSvv;
+        return;
     }
 
     void ScatterComp(
@@ -262,47 +216,44 @@ protected:
         uint64_t coTid, 
         int party
     ) const {
-        TaskComm& clientTaskComm = TaskComm::getClientInstance();
-        size_t tileNum = clientTaskComm.getTileNum();
-        size_t tileIndex = clientTaskComm.getTileIndex();
         // updateSrcSvv
         // updateSrcOutDeg
         // updateDstInDeg
         // duplicatedUpdateSvv
 
-        // size_t length = updateSrcSvv.size();
-        // std::vector<uint64_t> normalizer0(length);
-        // std::vector<uint64_t> normalizer1(length);
-        // for (int i = 0; i < length; ++i) {
-        //     normalizer0[i] = updateSrcOutDeg[i] == 0 ? 0 : CryptoUtil::encodeDoubleAsFixedPoint(pow((double)updateSrcOutDeg[i] + 1, -0.5));
-        //     normalizer1[i] = updateDstInDeg[i] == 0 ? 0 : CryptoUtil::encodeDoubleAsFixedPoint(pow((double)updateDstInDeg[i] + 1, -0.5));
-        // }
+        size_t length = updateSrcSvv.size();
+        std::vector<uint64_t> normalizer0(length);
+        std::vector<uint64_t> normalizer1(length);
+        for (int i = 0; i < length; ++i) {
+            normalizer0[i] = updateSrcOutDeg[i] == 0 ? 0 : CryptoUtil::encodeDoubleAsFixedPoint(pow((double)updateSrcOutDeg[i] + 1, -0.5));
+            normalizer1[i] = updateDstInDeg[i] == 0 ? 0 : CryptoUtil::encodeDoubleAsFixedPoint(pow((double)updateDstInDeg[i] + 1, -0.5));
+        }
 
 #ifdef GCN_LOG
-        // printf(">>>>> Scatter Comp updateSrcSvv: party id %d role %d\n", tileIndex, party);
+        // printf(">>>>> Scatter Comp updateSrcSvv: party id %d role %d\n", 1 - coTid, party);
         // sci::printShareVecVec(updateSrcSvv, coTid, party);
-        // printf("<<<<< Scatter Comp updateSrcSvv: party id %d role %d\n", tileIndex, party);        
+        // printf("<<<<< Scatter Comp updateSrcSvv: party id %d role %d\n", 1 - coTid, party);        
 
-        // printf(">>>>> Scatter Comp normalizer: party id %d role %d\n", tileIndex, party);
+        // printf(">>>>> Scatter Comp normalizer: party id %d role %d\n", 1 - coTid, party);
         // sci::printShareVecVec(ShareVecVec(1, normalizer0), coTid, party);
         // sci::printShareVecVec(ShareVecVec(1, normalizer1), coTid, party);
-        // printf("<<<<< Scatter Comp normalizer: party id %d role %d\n", tileIndex, party);    
+        // printf("<<<<< Scatter Comp normalizer: party id %d role %d\n", 1 - coTid, party);    
 #endif
 
-        // sci::twoPartyGCNVectorScale(
-        //     updateSrcSvv, 
-        //     normalizer0, 
-        //     normalizer1, 
-        //     duplicatedUpdateSvv, 
-        //     coTid, 
-        //     party
-        // );
-        duplicatedUpdateSvv = updateSrcSvv;
+        sci::twoPartyGCNVectorScale(
+            updateSrcSvv, 
+            normalizer0, 
+            normalizer1, 
+            duplicatedUpdateSvv, 
+            coTid, 
+            party
+        );
+        // duplicatedUpdateSvv = updateSrcSvv;
 
 #ifdef GCN_LOG
-        // printf(">>>>> Scatter Comp duplicatedUpdateSvv: party id %d role %d\n", tileIndex, party);
+        // printf(">>>>> Scatter Comp duplicatedUpdateSvv: party id %d role %d\n", 1 - coTid, party);
         // sci::printShareVecVec(duplicatedUpdateSvv, coTid, party);
-        // printf("<<<<< Scatter Comp duplicatedUpdateSvv: party id %d role %d\n", tileIndex, party);
+        // printf("<<<<< Scatter Comp duplicatedUpdateSvv: party id %d role %d\n", 1 - coTid, party);
 #endif
     }
 
@@ -312,16 +263,13 @@ protected:
         uint64_t coTid, 
         int party
     ) const {
-        TaskComm& clientTaskComm = TaskComm::getClientInstance();
-        size_t tileNum = clientTaskComm.getTileNum();
-        size_t tileIndex = clientTaskComm.getTileIndex();
 #ifdef GCN_LOG
-        printf(">>>>> PreMerge Comp duplicatedUpdateSvv input: party id %d role %d\n", tileIndex, party);
+        printf(">>>>> PreMerge Comp duplicatedUpdateSvv input: party id %d role %d\n", 1 - coTid, party);
         sci::printShareVecVec(duplicatedUpdateSvv, coTid, party);
-        printf("<<<<< PreMerge Comp duplicatedUpdateSvv input: party id %d role %d\n", tileIndex, party);
-        // printf(">>>>> PreMerge Comp updateDstVertexPos input: party id %d role %d\n", tileIndex, party);
+        printf("<<<<< PreMerge Comp duplicatedUpdateSvv input: party id %d role %d\n", 1 - coTid, party);
+        // printf(">>>>> PreMerge Comp updateDstVertexPos input: party id %d role %d\n", 1 - coTid, party);
         // sci::print_vector(updateDstVertexPos);
-        // printf("<<<<< PreMerge Comp updateDstVertexPos input: party id %d role %d\n", tileIndex, party);
+        // printf("<<<<< PreMerge Comp updateDstVertexPos input: party id %d role %d\n", 1 - coTid, party);
 #endif        
         // duplicatedUpdateSvv
         // updateDstVertexPos
@@ -335,9 +283,9 @@ protected:
         );
 
 #ifdef GCN_LOG
-        printf(">>>>> PreMerge Comp duplicatedUpdateSvv output: party id %d role %d\n", tileIndex, party);
+        printf(">>>>> PreMerge Comp duplicatedUpdateSvv output: party id %d role %d\n", 1 - coTid, party);
         sci::printShareVecVec(duplicatedUpdateSvv, coTid, party);
-        printf("<<<<< PreMerge Comp duplicatedUpdateSvv output: party id %d role %d\n", tileIndex, party);
+        printf("<<<<< PreMerge Comp duplicatedUpdateSvv output: party id %d role %d\n", 1 - coTid, party);
 #endif
     }
 
@@ -389,64 +337,48 @@ protected:
         bool isForward = ((iter % epochLayerNum) < forwardLayerNum); 
         uint32_t coForwardLayer = 0;
         if (isForward) coForwardLayer = iter % epochLayerNum;
-        else coForwardLayer = forwardLayerNum - 1 - (((iter % epochLayerNum) - forwardLayerNum) / 2);
-
-        TaskComm& clientTaskComm = TaskComm::getClientInstance();
-        size_t tileNum = clientTaskComm.getTileNum();
-        size_t tileIndex = clientTaskComm.getTileIndex();
+        else coForwardLayer = forwardLayerNum - 1 - ((iter % epochLayerNum) - forwardLayerNum);
 
         bool isSigned = true;
 
 #ifdef GCN_LOG
-        printf(">>>>> Gather Comp vertexSvv input: party id %d role %d\n", tileIndex, party);
+        printf(">>>>> Gather Comp vertexSvv input: party id %d role %d\n", 1 - coTid, party);
         sci::printShareVecVec(vertexSvv, coTid, party);
-        printf("<<<<< Gather Comp vertexSvv input: party id %d role %d\n", tileIndex, party);
-        printf(">>>>> Gather Comp updateSvv: party id %d role %d\n", tileIndex, party);
+        printf("<<<<< Gather Comp vertexSvv input: party id %d role %d\n", 1 - coTid, party);
+        printf(">>>>> Gather Comp updateSvv: party id %d role %d\n", 1 - coTid, party);
         sci::printShareVecVec(updateSvv, coTid, party);
-        printf("<<<<< Gather Comp updateSvv: party id %d role %d\n", tileIndex, party);
-        // printf(">>>>> Gather Comp isGatherDstVertexDummy: party id %d role %d\n", tileIndex, party);
+        printf("<<<<< Gather Comp updateSvv: party id %d role %d\n", 1 - coTid, party);
+        // printf(">>>>> Gather Comp isGatherDstVertexDummy: party id %d role %d\n", 1 - coTid, party);
         // sci::print_vector(isGatherDstVertexDummy);
-        // printf("<<<<< Gather Comp isGatherDstVertexDummy: party id %d role %d\n", tileIndex, party);
+        // printf("<<<<< Gather Comp isGatherDstVertexDummy: party id %d role %d\n", 1 - coTid, party);
 #endif            
         size_t length = localVertexInDeg.size();
-        // std::vector<uint64_t> normalizer(length);
-        // for (int i = 0; i < length; ++i) {
-        //     normalizer[i] = localVertexInDeg[i] == 0 ? 0 : CryptoUtil::encodeDoubleAsFixedPoint(pow((double)localVertexInDeg[i] + 1, -0.5));
-        // }
+        std::vector<uint64_t> normalizer(length);
+        for (int i = 0; i < length; ++i) {
+            normalizer[i] = localVertexInDeg[i] == 0 ? 0 : CryptoUtil::encodeDoubleAsFixedPoint(pow((double)localVertexInDeg[i] + 1, -0.5));
+        }
 
         auto t_tmp = std::chrono::high_resolution_clock::now();
 
-        // // If is a backward layer, the vertex scale and update scale are not delayed.
-        // // If not, they are delayed to the Apply phase.
-        // if ((iter / gnnParam.num_layers) % 2 != 0) {
-        //     t_tmp = std::chrono::high_resolution_clock::now();
+        // If is a backward layer, the vertex scale and update scale are not delayed.
+        // If not, they are delayed to the Apply phase.
+        if (isForward) {
+            t_tmp = std::chrono::high_resolution_clock::now();
 
-        //     if (updateSrcTid == 0) {
-        //         sci::twoPartyGCNVectorScale(
-        //             vertexSvv, 
-        //             normalizer, 
-        //             vertexSvv, 
-        //             isSigned,
-        //             coTid, 
-        //             party
-        //         );
-        //     }
+            if (updateSrcTid == 0) {
+                sci::twoPartyGCNVectorScale(
+                    vertexSvv, 
+                    normalizer, 
+                    vertexSvv, 
+                    isSigned,
+                    coTid, 
+                    party
+                );
+            }
 
-        //     if (party == sci::ALICE) print_duration(t_tmp, "vertex-svv-scale");
-        //     t_tmp = std::chrono::high_resolution_clock::now();
-
-        //     sci::twoPartyGCNVectorScale(
-        //         updateSvv, 
-        //         normalizer, 
-        //         updateSvv,
-        //         isSigned, 
-        //         coTid, 
-        //         party
-        //     );      
-
-        //     if (party == sci::ALICE) print_duration(t_tmp, "update-svv-scale");
-        //     t_tmp = std::chrono::high_resolution_clock::now(); 
-        // } 
+            if (party == sci::ALICE) print_duration(t_tmp, "vertex-svv-scale");
+            t_tmp = std::chrono::high_resolution_clock::now();
+        } 
 
         // vertexSvv
         // updateSvv
@@ -463,33 +395,12 @@ protected:
         );
 
         if (party == sci::ALICE) print_duration(t_tmp, "vertex-update-cond-addition");
-
-        // Scale as we have Gathered updates from all parties.
-        t_tmp = std::chrono::high_resolution_clock::now();
-
-        if (updateSrcTid == tileNum - 1 && (iter + 1) % epochLayerNum != 0) {
-            std::vector<uint64_t> normalizer(length);
-            for (int i = 0; i < length; ++i) {
-                normalizer[i] = localVertexInDeg[i] == 0 ? 0 : CryptoUtil::encodeDoubleAsFixedPoint(pow((double)localVertexInDeg[i] + 1, -0.5));
-            }
-
-            sci::twoPartyGCNVectorScale(
-                vertexSvv, 
-                normalizer, 
-                vertexSvv, 
-                isSigned,
-                coTid, 
-                party
-            );
-        }   
-
-        if (party == sci::ALICE) print_duration(t_tmp, "vertex-plus-update-svv-scale");
         
 
 #ifdef GCN_LOG
-        printf(">>>>> Gather Comp vertexSvv output: party id %d role %d\n", tileIndex, party);
+        printf(">>>>> Gather Comp vertexSvv output: party id %d role %d\n", 1 - coTid, party);
         sci::printShareVecVec(vertexSvv, coTid, party);
-        printf("<<<<< Gather Comp vertexSvv output: party id %d role %d\n", tileIndex, party);
+        printf("<<<<< Gather Comp vertexSvv output: party id %d role %d\n", 1 - coTid, party);
 #endif
     }
 
@@ -520,7 +431,7 @@ protected:
         bool isForward = ((iter % epochLayerNum) < forwardLayerNum); 
         uint32_t coForwardLayer = 0;
         if (isForward) coForwardLayer = iter % epochLayerNum;
-        else coForwardLayer = forwardLayerNum - 1 - (((iter % epochLayerNum) - forwardLayerNum) / 2);
+        else coForwardLayer = forwardLayerNum - 1 - ((iter % epochLayerNum) - forwardLayerNum);
 
         uint64_t vecSize = vertexDataVec.size();
         TaskComm& clientTaskComm = TaskComm::getClientInstance();
@@ -533,28 +444,31 @@ protected:
         else party = sci::BOB; 
 
         size_t length = localVertexInDeg.size();
-        std::vector<uint64_t> normalizer(length);
-        for (int i = 0; i < length; ++i) {
-            normalizer[i] = localVertexInDeg[i] == 0 ? 0 : CryptoUtil::encodeDoubleAsFixedPoint(pow((double)localVertexInDeg[i] + 1, -0.5));
-        }
+        std::vector<uint64_t> normalizer;
 
         if (isForward) { // FORWARD
             const ShareTensor& weight = isClient? gs.localWeight[coForwardLayer]:gs.remoteWeight[coForwardLayer];
             TensorVecMap& vertexInterData = isClient? gs.localVertexInterDataTVs[coForwardLayer]:gs.remoteVertexInterDataTVs[coForwardLayer];
+            vertexInterData["ah_t"] = {transpose(vertexDataVec)};
 
             // printf("H1.2\n");
             if (iter % epochLayerNum != forwardLayerNum - 1) { // GCN_FORWARD_NN
-                vertexInterData["z"] = {vertexDataVec};
+                vertexInterData["z"] = std::vector<ShareTensor>(1);
+                ShareTensor z;
                 ShareTensor new_h;
-                sci::twoPartyGCNRelu(vertexDataVec, new_h, dstTid, party);
+                sci::twoPartyGCNForwardNN(vertexDataVec, weight, normalizer, z, new_h, dstTid, party);
 
 #ifdef GCN_LOG
-                printf(">>>>> Apply Comp forward, z, new_h: party id %d role %d\n", tileIndex, party);
+                printf(">>>>> Apply Comp forward, input, weight, z: party id %d role %d\n", 1 - dstTid, party);
                 sci::printShareVecVec(vertexDataVec, dstTid, party);
                 printf("------------\n");
-                sci::printShareVecVec(new_h, dstTid, party);
-                printf("<<<<< Apply Comp forward, z, new_h: party id %d role %d\n", tileIndex, party);
+                sci::printShareVecVec(weight, dstTid, party);
+                printf("------------\n");
+                sci::printShareVecVec(z, dstTid, party);
+                printf("<<<<< Apply Comp forward, input, weight, z: party id %d role %d\n", 1 - dstTid, party);
 #endif
+
+                vertexInterData["z"][0].swap(z);
                 dstVec.swap(new_h);
             } else { // GCN_FORWARD_PREDICTION
                 uint64_t trainSetSize = (uint64_t)(vecSize * gnnParam.train_ratio);
@@ -565,8 +479,9 @@ protected:
                 printf(">> valSetSize %lu\n", valSetSize);
                 printf(">> testSetSize %lu\n", testSetSize);
 #endif
-                vertexInterData["z"] = {vertexDataVec};
+                vertexInterData["z"] = std::vector<ShareTensor>(1);
                 vertexInterData["p"] = std::vector<ShareTensor>(1);
+                ShareTensor z;
                 ShareTensor p;
                 ShareTensor p_minus_y;
                 if (isClient) {
@@ -575,28 +490,32 @@ protected:
                         label.push_back(toShareVec(gs.localVertexVec[i]->data().label, gnnParam.num_labels));
                         // printf("vid %lu\n", (uint64_t)gs.localVertexVec[i]->vid());
                     }
-                    sci::twoPartyGCNForwardNNPredictionWithoutWeight(vertexDataVec, label, p, p_minus_y, dstTid, party);
+                    sci::twoPartyGCNForwardNNPrediction(vertexDataVec, weight, label, normalizer, z, p, p_minus_y, dstTid, party);
 #ifdef GCN_LOG
-                    printf(">>>>> Apply Comp prediction, input, weight, p: party id %d role %d\n", tileIndex, party);
+                    printf(">>>>> Apply Comp prediction, input, weight, z, p: party id %d role %d\n", 1 - dstTid, party);
                     sci::printShareVecVec(vertexDataVec, dstTid, party);
                     printf("------------\n");
                     sci::printShareVecVec(weight, dstTid, party);
                     printf("------------\n");
+                    sci::printShareVecVec(z, dstTid, party);
+                    printf("------------\n");
                     sci::printShareVecVec(p, dstTid, party);
-                    printf("<<<<< Apply Comp prediction, input, weight, p: party id %d role %d\n", tileIndex, party);
+                    printf("<<<<< Apply Comp prediction, input, weight, z, p: party id %d role %d\n", 1 - dstTid, party);
 #endif
                 } else {
                     ShareVecVec zero_label;
                     zero_label.resize(vecSize, std::vector<uint64_t>(gnnParam.num_labels, 0));
-                    sci::twoPartyGCNForwardNNPredictionWithoutWeight(vertexDataVec, zero_label, p, p_minus_y, dstTid, party);
+                    sci::twoPartyGCNForwardNNPrediction(vertexDataVec, weight, zero_label, normalizer, z, p, p_minus_y, dstTid, party);
 #ifdef GCN_LOG
-                    printf(">>>>> Apply Comp prediction, input, weight, p: party id %d role %d\n", tileIndex, party);
+                    printf(">>>>> Apply Comp prediction, input, weight, z, p: party id %d role %d\n", 1 - dstTid, party);
                     sci::printShareVecVec(vertexDataVec, dstTid, party);
                     printf("------------\n");
                     sci::printShareVecVec(weight, dstTid, party);
                     printf("------------\n");
+                    sci::printShareVecVec(z, dstTid, party);
+                    printf("------------\n");
                     sci::printShareVecVec(p, dstTid, party);
-                    printf("<<<<< Apply Comp prediction, input, weight, p: party id %d role %d\n", tileIndex, party);
+                    printf("<<<<< Apply Comp prediction, input, weight, z, p: party id %d role %d\n", 1 - dstTid, party);
 #endif
                 }
 
@@ -604,7 +523,7 @@ protected:
                 sci::getPlainShareVecVec(p, plainP, dstTid, party);
                 if (isClient) {
 #ifdef GCN_LOG
-                    printf(">>>>> Apply Comp prediction, y, loss, accuracy: party id %d role %d\n", tileIndex, party);
+                    printf(">>>>> Apply Comp prediction, y, loss, accuracy: party id %d role %d\n", 1 - dstTid, party);
                     sci::print_vector_of_vector(plainP, 10);
                     printf("--------\n");
 #endif
@@ -630,9 +549,10 @@ protected:
                     printf("test set accuracy = %lf\n", sci::accuracy(testY, testPlainP));
                     printf("border test set accuracy = %lf\n", sci::accuracy(testY, testPlainP, testIsBorder));
                     printf("the number of vertices is %lu, the number of border vertices is %lu\n", y.size(), sci::count_true(gs.isLocalVertexBorder));
-                    // printf("<<<<< Apply Comp prediction, y, loss, accuracy: party id %d role %d\n", tileIndex, party);
+                    // printf("<<<<< Apply Comp prediction, y, loss, accuracy: party id %d role %d\n", 1 - dstTid, party);
                 }
 
+                vertexInterData["z"][0].swap(z);
                 vertexInterData["p"][0].swap(p);
                 // Preserve the gradients of training set only
                 // printf("trainSetSize %lu, vecSize %lu\n", trainSetSize, vecSize);
@@ -648,27 +568,22 @@ protected:
             weightT = transpose(weightT);
             TensorVecMap& vertexInterData = isClient? gs.localVertexInterDataTVs[coForwardLayer]:gs.remoteVertexInterDataTVs[coForwardLayer];
             TensorVecMap& coVertexInterData = isClient? gs.remoteVertexInterDataTVs[coForwardLayer]:gs.localVertexInterDataTVs[coForwardLayer];
-            bool isFirstOfTwo = (((iter % epochLayerNum) - forwardLayerNum) % 2 == 0);
-            if (coForwardLayer == forwardLayerNum - 1) { // two layers of GCN_BACKWARD_NN_INIT
+            if (coForwardLayer == forwardLayerNum - 1) { // GCN_BACKWARD_NN_INIT
                 vertexInterData["d"] = std::vector<ShareTensor>(1);
                 ShareTensor d;
                 ShareTensor g;
 #ifdef GCN_LOG
-                printf(">>>>> Apply Comp p_minus_y: party id %d role %d\n", tileIndex, party);
+                printf(">>>>> Apply Comp p_minus_y: party id %d role %d\n", 1 - dstTid, party);
                 sci::printShareVecVec(vertexDataVec, dstTid, party);
-                printf("<<<<< Apply Comp p_minus_y: party id %d role %d\n", tileIndex, party);
-                printf(">>>>> Apply Comp weight_t: party id %d role %d\n", tileIndex, party);
+                printf("<<<<< Apply Comp p_minus_y: party id %d role %d\n", 1 - dstTid, party);
+                printf(">>>>> Apply Comp ah_t: party id %d role %d\n", 1 - dstTid, party);
+                sci::printShareVecVec(vertexInterData["ah_t"][0], dstTid, party);
+                printf("<<<<< Apply Comp ah_t: party id %d role %d\n", 1 - dstTid, party);
+                printf(">>>>> Apply Comp weight_t: party id %d role %d\n", 1 - dstTid, party);
                 sci::printShareVecVec(weightT, dstTid, party);
-                printf("<<<<< Apply Comp weight_t: party id %d role %d\n", tileIndex, party);
+                printf("<<<<< Apply Comp weight_t: party id %d role %d\n", 1 - dstTid, party);
 #endif
-                if (isFirstOfTwo) {
-                    sci::twoPartyGCNMatMul(vertexDataVec, weightT, g, dstTid, party);
-                    vertexInterData["g"] = {g};
-                    dstVec = vertexDataVec;
-                    return;
-                }
-
-                sci::twoPartyGCNMatMul(vertexInterData["h_t"][0], vertexDataVec, d , dstTid, party);
+                sci::twoPartyGCNBackwardNNInit(vertexDataVec, vertexInterData["ah_t"][0], weightT, normalizer, d, g, dstTid, party);
 
                 uint64_t trainSetSize = (uint64_t)(vecSize * gnnParam.train_ratio);
                 double gradientScaler = (double) 1 / trainSetSize;
@@ -677,44 +592,41 @@ protected:
 
                 sci::twoPartyGCNApplyGradient(weightRef, d, static_cast<uint64_t>(gs.learningRate * (1<<SCALER_BIT_LENGTH)), weightRef, dstTid, party);
 
-                double weightScaler = (double) 1 / tileNum;
-                sci::twoPartyGCNMatrixScale(weightRef, static_cast<uint64_t>(weightScaler * (1<<SCALER_BIT_LENGTH)), weightRef, dstTid, party);
+                // double weightScaler = (double) 1 / tileNum;
+                // sci::twoPartyGCNMatrixScale(weightRef, static_cast<uint64_t>(weightScaler * (1<<SCALER_BIT_LENGTH)), weightRef, dstTid, party);
 
                 vertexInterData["d"][0].swap(d);
-                dstVec.swap(vertexInterData["g"][0]);
+                dstVec.swap(g);
 #ifdef GCN_LOG
-                printf(">>>>> Apply Comp d: party id %d role %d\n", tileIndex, party);
+                printf(">>>>> Apply Comp d: party id %d role %d\n", 1 - dstTid, party);
                 sci::printShareVecVec(vertexInterData["d"][0], dstTid, party);
-                printf("<<<<< Apply Comp d: party id %d role %d\n", tileIndex, party);
+                printf("<<<<< Apply Comp d: party id %d role %d\n", 1 - dstTid, party);
 #endif
             } else { // GCN_BACKWARD_NN
                 vertexInterData["d"] = std::vector<ShareTensor>(1);
                 ShareTensor d;
                 ShareTensor g;
 #ifdef GCN_LOG
-                printf(">>>>> Apply Comp p_minus_y: party id %d role %d\n", tileIndex, party);
+                printf(">>>>> Apply Comp p_minus_y: party id %d role %d\n", 1 - dstTid, party);
                 sci::printShareVecVec(vertexDataVec, dstTid, party);
-                printf("<<<<< Apply Comp p_minus_y: party id %d role %d\n", tileIndex, party);
-                printf(">>>>> Apply Comp weight_t: party id %d role %d\n", tileIndex, party);
+                printf("<<<<< Apply Comp p_minus_y: party id %d role %d\n", 1 - dstTid, party);
+                printf(">>>>> Apply Comp ah_t: party id %d role %d\n", 1 - dstTid, party);
+                sci::printShareVecVec(vertexInterData["ah_t"][0], dstTid, party);
+                printf("<<<<< Apply Comp ah_t: party id %d role %d\n", 1 - dstTid, party);
+                printf(">>>>> Apply Comp weight_t: party id %d role %d\n", 1 - dstTid, party);
                 sci::printShareVecVec(weightT, dstTid, party);
-                printf("<<<<< Apply Comp weight_t: party id %d role %d\n", tileIndex, party);
+                printf("<<<<< Apply Comp weight_t: party id %d role %d\n", 1 - dstTid, party);
 #endif
                 bool isFirstLayer = false;
                 if (coForwardLayer == 0) isFirstLayer = true; 
-                if (isFirstOfTwo) {
-                    sci::twoPartyGCNBackwardNNWithoutAH(vertexDataVec, vertexInterData["z"][0], weightT, dstVec, g, isFirstLayer, dstTid, party);
-                    vertexInterData["g"] = {g};
-                    return;
-                }
-
-                sci::twoPartyGCNMatMul(vertexInterData["h_t"][0], vertexDataVec, d , dstTid, party);
+                sci::twoPartyGCNBackwardNN(vertexDataVec, vertexInterData["ah_t"][0], vertexInterData["z"][0], weightT, normalizer, d, g, isFirstLayer, dstTid, party);
 #ifdef GCN_LOG
-                printf(">>>>> Apply Comp d: party id %d role %d\n", tileIndex, party);
+                printf(">>>>> Apply Comp d: party id %d role %d\n", 1 - dstTid, party);
                 sci::printShareVecVec(d, dstTid, party);
-                printf("<<<<< Apply Comp d: party id %d role %d\n", tileIndex, party);
-                printf(">>>>> Apply Comp g: party id %d role %d\n", tileIndex, party);
-                sci::printShareVecVec(vertexInterData["g"][0], dstTid, party);
-                printf("<<<<< Apply Comp g: party id %d role %d\n", tileIndex, party);
+                printf("<<<<< Apply Comp d: party id %d role %d\n", 1 - dstTid, party);
+                printf(">>>>> Apply Comp g: party id %d role %d\n", 1 - dstTid, party);
+                sci::printShareVecVec(g, dstTid, party);
+                printf("<<<<< Apply Comp g: party id %d role %d\n", 1 - dstTid, party);
 #endif
 
                 uint64_t trainSetSize = (uint64_t)(vecSize * gnnParam.train_ratio);
@@ -723,24 +635,24 @@ protected:
                 sci::twoPartyGCNMatrixScale(d, static_cast<uint64_t>(gradientScaler * (1<<SCALER_BIT_LENGTH)), d, dstTid, party);
 
 #ifdef GCN_LOG
-                printf(">>>>> Apply Comp weight, d, new weight: party id %d role %d\n", tileIndex, party);
+                printf(">>>>> Apply Comp weight, d, new weight: party id %d role %d\n", 1 - dstTid, party);
                 sci::printShareVecVec(weightRef, dstTid, party);
                 printf("---------\n");
 #endif
                 sci::twoPartyGCNApplyGradient(weightRef, d, static_cast<uint64_t>(gs.learningRate * (1<<SCALER_BIT_LENGTH)), weightRef, dstTid, party);
 
-                double weightScaler = (double) 1 / tileNum;
-                sci::twoPartyGCNMatrixScale(weightRef, static_cast<uint64_t>(weightScaler * (1<<SCALER_BIT_LENGTH)), weightRef, dstTid, party);
+                // double weightScaler = (double) 1 / tileNum;
+                // sci::twoPartyGCNMatrixScale(weightRef, static_cast<uint64_t>(weightScaler * (1<<SCALER_BIT_LENGTH)), weightRef, dstTid, party);
 
                 vertexInterData["d"][0].swap(d);
-                dstVec.swap(vertexInterData["g"][0]);
+                dstVec.swap(g);
 
 #ifdef GCN_LOG
                 sci::printShareVecVec(vertexInterData["d"][0], dstTid, party);
                 printf("---------\n");
                 sci::printShareVecVec(weightRef, dstTid, party);
                 printf("---------\n");
-                printf("<<<<< Apply Comp weight, d, new weight: party id %d role %d\n", tileIndex, party);
+                printf("<<<<< Apply Comp weight, d, new weight: party id %d role %d\n", 1 - dstTid, party);
 #endif
             }
 
@@ -748,62 +660,62 @@ protected:
             Semaphore& weight_avg_finished_smp = clientTaskComm.getWeightAvgFinishedSmp();
             if (isClient) {
                 remote_weight_ready_smp.acquire();
-                // ShareVecVec debugD;
+                ShareVecVec debugD;
                 std::vector<ShareVecVec> weightFromTheOtherParties(tileNum);
                 if (tileIndex == 0 || tileIndex == 1) {
                     for (int i = 0; i < tileNum; ++i) {
                         if (i != tileIndex && i != 1-tileIndex) {
-                            if (tileIndex == 0) clientTaskComm.recvShareVecVec(weightFromTheOtherParties[i], i);
-                            if (tileIndex == 1) serverTaskComm.recvShareVecVec(weightFromTheOtherParties[i], i);
+                            clientTaskComm.recvShareVecVec(weightFromTheOtherParties[i], i);
                             sci::plaintext_add_matrix_in_place(weightRef, weightFromTheOtherParties[i]);
                         }
                     }
-                    // debugD = sci::plaintext_add_matrix(vertexInterData["d"][0], coVertexInterData["d"][0]);
+                    debugD = sci::plaintext_add_matrix(vertexInterData["d"][0], coVertexInterData["d"][0]);
                     sci::plaintext_add_matrix_in_place(weightRef, coWeightRef);
+
+                    double weightScaler = (double) 1 / tileNum;
+                    sci::twoPartyGCNMatrixScale(weightRef, static_cast<uint64_t>(weightScaler * (1<<SCALER_BIT_LENGTH)), weightRef, 1-tileIndex, tileIndex + 1);
+
                     coWeightRef = weightRef;
                     for (int i = 0; i < tileNum; ++i) {
-                        if (i != tileIndex && i != 1-tileIndex) {
-                            if (tileIndex == 0) clientTaskComm.sendShareVecVec(weightRef, i);
-                            if (tileIndex == 1) serverTaskComm.sendShareVecVec(weightRef, i);
-                        }
+                        if (i != tileIndex && i != 1-tileIndex) clientTaskComm.sendShareVecVec(weightRef, i);
                     }
                 } else {
-                    clientTaskComm.sendShareVecVec(weightRef, 1);
+                    serverTaskComm.sendShareVecVec(weightRef, 1);
                     serverTaskComm.sendShareVecVec(coWeightRef, 0);
-                    clientTaskComm.recvShareVecVec(weightRef, 1);
+                    serverTaskComm.recvShareVecVec(weightRef, 1);
                     serverTaskComm.recvShareVecVec(coWeightRef, 0);
                 }
 
                 weight_avg_finished_smp.release();
 
 #ifdef GCN_LOG
-                // printf(">>>>> Apply Comp added d: party id %d role %d\n", tileIndex, party);
-                // sci::printShareVecVec(debugD, dstTid, party);
-                // printf("<<<<< Apply Comp added d: party id %d role %d\n", tileIndex, party);
-                printf(">>>>> Apply Comp added weight: party id %d role %d\n", tileIndex, party);
+                printf(">>>>> Apply Comp added d: party id %d role %d\n", 1 - dstTid, party);
+                sci::printShareVecVec(debugD, dstTid, party);
+                printf("<<<<< Apply Comp added d: party id %d role %d\n", 1 - dstTid, party);
+                printf(">>>>> Apply Comp added weight: party id %d role %d\n", 1 - dstTid, party);
                 sci::printShareVecVec(coWeightRef, dstTid, party);
-                printf("<<<<< Apply Comp added weight: party id %d role %d\n", tileIndex, party);
+                printf("<<<<< Apply Comp added weight: party id %d role %d\n", 1 - dstTid, party);
 #endif
             } else {
                 remote_weight_ready_smp.release();
                 weight_avg_finished_smp.acquire();
-                // ShareVecVec debugD = sci::plaintext_add_matrix(vertexInterData["d"][0], coVertexInterData["d"][0]);
+                ShareVecVec debugD = sci::plaintext_add_matrix(vertexInterData["d"][0], coVertexInterData["d"][0]);
 #ifdef GCN_LOG
-                // printf(">>>>> Apply Comp added d: party id %d role %d\n", tileIndex, party);
-                // sci::printShareVecVec(debugD, dstTid, party);
-                // printf("<<<<< Apply Comp added d: party id %d role %d\n", tileIndex, party);
-                printf(">>>>> Apply Comp added weight: party id %d role %d\n", tileIndex, party);
+                printf(">>>>> Apply Comp added d: party id %d role %d\n", 1 - dstTid, party);
+                sci::printShareVecVec(debugD, dstTid, party);
+                printf("<<<<< Apply Comp added d: party id %d role %d\n", 1 - dstTid, party);
+                printf(">>>>> Apply Comp added weight: party id %d role %d\n", 1 - dstTid, party);
                 sci::printShareVecVec(coWeightRef, dstTid, party);
-                printf("<<<<< Apply Comp added weight: party id %d role %d\n", tileIndex, party);
+                printf("<<<<< Apply Comp added weight: party id %d role %d\n", 1 - dstTid, party);
 #endif
             }
 
         } 
 
 #ifdef GCN_LOG
-        printf(">>>>> Apply Comp: party id %d role %d\n", tileIndex, party);
+        printf(">>>>> Apply Comp: party id %d role %d\n", 1 - dstTid, party);
         sci::printShareVecVec(dstVec, dstTid, party);
-        printf("<<<<< Apply Comp: party id %d role %d\n", tileIndex, party);    
+        printf("<<<<< Apply Comp: party id %d role %d\n", 1 - dstTid, party);    
 #endif
     }
 
@@ -894,25 +806,19 @@ protected:
 
     uint32_t getPlainNumPerOperand(uint64_t layer) const {
         GNNParam& gnnParam = GNNParam::getGNNParam();
-        layer = layer % ((1 + 2)*gnnParam.num_layers);
+        layer = layer % (2*gnnParam.num_layers);
         uint32_t ret = 0;
         switch (layer) {
             case 0:
-                ret = gnnParam.hidden_dim;
+                ret = gnnParam.input_dim;
                 break;
             case 1:
-                ret = gnnParam.num_labels;
+                ret = gnnParam.hidden_dim;
                 break;
             case 2:
                 ret = gnnParam.num_labels;
                 break;
             case 3:
-                ret = gnnParam.num_labels;
-                break;
-            case 4:
-                ret = gnnParam.hidden_dim;
-                break;
-            case 5:
                 ret = gnnParam.hidden_dim;
                 break;
             default:
@@ -930,17 +836,17 @@ protected:
 
     uint32_t getBackwardLayerNum() const {
         GNNParam& gnnParam = GNNParam::getGNNParam();
-        return 2 * gnnParam.num_layers;
+        return gnnParam.num_layers;
     }
 
     uint32_t getEpochLayerNum() const {
         GNNParam& gnnParam = GNNParam::getGNNParam();
-        return 3 * gnnParam.num_layers;
+        return 2 * gnnParam.num_layers;
     }
 
     std::vector<uint32_t> getDimensionVec() const {
         GNNParam& gnnParam = GNNParam::getGNNParam();
-        std::vector<uint32_t> dimensions = {gnnParam.hidden_dim, gnnParam.num_labels, 0, 0, 0, 0};
+        std::vector<uint32_t> dimensions = {gnnParam.input_dim, gnnParam.hidden_dim, 0, gnnParam.hidden_dim};
         return dimensions;
     }
 

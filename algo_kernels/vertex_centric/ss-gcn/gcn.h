@@ -2,7 +2,7 @@
 #define ALGO_KERNELS_EDGE_CENTRIC_GCN_GCN_H_
 
 #include "graph.h"
-#include "ss_edge_centric_algo_kernel.h"
+#include "ss_vertex_centric_algo_kernel.h"
 #include "task.h"
 #include "TaskUtil.h"
 #include "SCIHarness.h"

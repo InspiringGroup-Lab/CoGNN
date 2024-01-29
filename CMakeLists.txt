@@ -26,15 +26,15 @@ set( CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_HOME_DIRECTORY}/bin)
 set( CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_HOME_DIRECTORY}/lib)
 set( CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_HOME_DIRECTORY}/lib)
 
-# add_subdirectory(algo_kernels/edge_centric/ss-pagerank)
+# add_subdirectory(algo_kernels/vertex_centric/ss-pagerank)
 
-# add_subdirectory(algo_kernels/edge_centric/ss-bfs)
+# add_subdirectory(algo_kernels/vertex_centric/ss-bfs)
 
-# add_subdirectory(algo_kernels/edge_centric/ss-cc)
+# add_subdirectory(algo_kernels/vertex_centric/ss-cc)
 
-# add_subdirectory(algo_kernels/edge_centric/ss-sssp)
+# add_subdirectory(algo_kernels/vertex_centric/ss-sssp)
 
-add_subdirectory(algo_kernels/edge_centric/ss-gcn)
-add_subdirectory(algo_kernels/edge_centric/optimize-gcn)
-add_subdirectory(algo_kernels/edge_centric/optimize-gcn-inference)
-add_subdirectory(algo_kernels/edge_centric/original-gcn)
+add_subdirectory(algo_kernels/vertex_centric/ss-gcn)
+add_subdirectory(algo_kernels/vertex_centric/optimize-gcn)
+add_subdirectory(algo_kernels/vertex_centric/optimize-gcn-inference)
+add_subdirectory(algo_kernels/vertex_centric/original-gcn)

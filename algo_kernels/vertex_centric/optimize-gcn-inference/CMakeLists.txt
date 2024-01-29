@@ -2,9 +2,9 @@ set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -g -Wall -Wextra -Wl,--no-as-needed -fu
 set(CMAKE_C_FLAGS  "${CMAKE_C_FLAGS}")
 
 file(GLOB_RECURSE SRC_GCN ${CMAKE_SOURCE_DIR}/CoGNN/algo_kernels/common_harness/*.cpp)
-include_directories(${CMAKE_SOURCE_DIR}/CoGNN/algo_kernels/edge_centric/optimize-gcn)
+include_directories(${CMAKE_SOURCE_DIR}/CoGNN/algo_kernels/vertex_centric/optimize-gcn-inference)
 
-add_executable(gcn-optimize ${SRC_GCN})
+add_executable(gcn-inference-optimize ${SRC_GCN})
 
 set(Boost_USE_STATIC_LIBS        ON) # only find static libs
 set(Boost_USE_MULTITHREADED      ON)
@@ -19,11 +19,11 @@ else()
    message(FATAL_ERROR "Failed to find boost at " ${Boost_Lib_Dirs} " Need system thread")
 endif()
 
-target_compile_definitions(gcn-optimize PRIVATE -DSSHEBACKEND)
+target_compile_definitions(gcn-inference-optimize PRIVATE -DSSHEBACKEND)
 
-target_include_directories(gcn-optimize PRIVATE "${CMAKE_SOURCE_DIR}/SSHE-Worker/include/")
+target_include_directories(gcn-inference-optimize PRIVATE "${CMAKE_SOURCE_DIR}/SSHE-Worker/include/")
 
 #############################################
 #            Link our libraries             #
 #############################################
-target_link_libraries(gcn-optimize cryptoTools TaskHandler)
+target_link_libraries(gcn-inference-optimize cryptoTools TaskHandler)

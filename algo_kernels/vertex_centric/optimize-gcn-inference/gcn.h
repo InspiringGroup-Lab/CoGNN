@@ -2,7 +2,7 @@
 #define ALGO_KERNELS_EDGE_CENTRIC_GCN_GCN_H_
 
 #include "graph.h"
-#include "ss_edge_centric_algo_kernel.h"
+#include "ss_vertex_centric_algo_kernel.h"
 #include "task.h"
 #include "TaskUtil.h"
 #include "SCIHarness.h"
@@ -677,8 +677,8 @@ protected:
 
                 sci::twoPartyGCNApplyGradient(weightRef, d, static_cast<uint64_t>(gs.learningRate * (1<<SCALER_BIT_LENGTH)), weightRef, dstTid, party);
 
-                // double weightScaler = (double) 1 / tileNum;
-                // sci::twoPartyGCNMatrixScale(weightRef, static_cast<uint64_t>(weightScaler * (1<<SCALER_BIT_LENGTH)), weightRef, dstTid, party);
+                double weightScaler = (double) 1 / tileNum;
+                sci::twoPartyGCNMatrixScale(weightRef, static_cast<uint64_t>(weightScaler * (1<<SCALER_BIT_LENGTH)), weightRef, dstTid, party);
 
                 vertexInterData["d"][0].swap(d);
                 dstVec.swap(vertexInterData["g"][0]);
@@ -729,8 +729,8 @@ protected:
 #endif
                 sci::twoPartyGCNApplyGradient(weightRef, d, static_cast<uint64_t>(gs.learningRate * (1<<SCALER_BIT_LENGTH)), weightRef, dstTid, party);
 
-                // double weightScaler = (double) 1 / tileNum;
-                // sci::twoPartyGCNMatrixScale(weightRef, static_cast<uint64_t>(weightScaler * (1<<SCALER_BIT_LENGTH)), weightRef, dstTid, party);
+                double weightScaler = (double) 1 / tileNum;
+                sci::twoPartyGCNMatrixScale(weightRef, static_cast<uint64_t>(weightScaler * (1<<SCALER_BIT_LENGTH)), weightRef, dstTid, party);
 
                 vertexInterData["d"][0].swap(d);
                 dstVec.swap(vertexInterData["g"][0]);
@@ -760,10 +760,7 @@ protected:
                     }
                     // debugD = sci::plaintext_add_matrix(vertexInterData["d"][0], coVertexInterData["d"][0]);
                     sci::plaintext_add_matrix_in_place(weightRef, coWeightRef);
-                    double weightScaler = (double) 1 / tileNum;
-                    sci::twoPartyGCNMatrixScale(weightRef, static_cast<uint64_t>(weightScaler * (1<<SCALER_BIT_LENGTH)), weightRef, 1-tileIndex, tileIndex + 1);
                     coWeightRef = weightRef;
-
                     for (int i = 0; i < tileNum; ++i) {
                         if (i != tileIndex && i != 1-tileIndex) {
                             if (tileIndex == 0) clientTaskComm.sendShareVecVec(weightRef, i);
@@ -943,7 +940,7 @@ protected:
 
     std::vector<uint32_t> getDimensionVec() const {
         GNNParam& gnnParam = GNNParam::getGNNParam();
-        std::vector<uint32_t> dimensions = {gnnParam.hidden_dim, gnnParam.num_labels, 0, gnnParam.num_labels, gnnParam.hidden_dim, gnnParam.hidden_dim};
+        std::vector<uint32_t> dimensions = {gnnParam.hidden_dim, gnnParam.num_labels, 0, 0, 0, 0};
         return dimensions;
     }
 
