@@ -62,6 +62,8 @@ Install troy (GPU-based FHE).
 
 ```bash
 cd Artifact/MPC
+git clone https://github.com/CoGNN-anon/troy.git
+cd troy
 mkdir build && cd build
 cmake ..
 cmake --build . --target install --parallel
