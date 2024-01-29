@@ -1,0 +1,38 @@
+# Common make rules for harness kernel applications.
+# Define SRC_DIR, and BIN_DIR before include this file.
+#
+# For each KERNEL, header file is $(SRC_DIR)/$(APP)/(APP).h,
+# and harness header is $(SRC_DIR)/$(APP)/kernel_harness.h.
+
+SRC_DIR ?= .
+BIN_DIR ?= bin
+
+# Common harness.
+COMHAR_DIR := $(realpath $(dir $(word $(words $(MAKEFILE_LIST)), $(MAKEFILE_LIST))))
+COMHAR_SRC = $(wildcard $(foreach EXT,$(SRC_EXTS),$(COMHAR_DIR)/*$(EXT)))
+
+# Kernel path macros.
+knl_dir = $(SRC_DIR)/$1
+knl_hdr = $(foreach EXT,$(HDR_EXTS),$(call knl_dir,$1)/$1$(EXT))
+
+OBJS = $(wildcard $(SRC_DIR)/*/*.o)
+DEPS = $(wildcard $(SRC_DIR)/*/*.d)
+
+
+$(BIN_DIR):
+	@mkdir -p $@
+
+# $(BIN_DIR) is an order-only prerequisite
+define compile_rule
+$(BIN_DIR)/$1: $(COMHAR_SRC) | $(BIN_DIR)
+	$$(CXX) $$< -o $$@ $$(CXXFLAGS) -I$$(call knl_dir,$1) $$(LDFLAGS) -MP -MMD -MF $$(call knl_dir,$1)/$1.d
+endef
+
+clean:
+	rm -f $(OBJS) $(DEPS)
+	rm -rf $(BIN_DIR)
+
+.PHONY: clean
+
+-include $(DEPS)
+
