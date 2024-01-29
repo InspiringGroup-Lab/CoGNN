@@ -21,7 +21,7 @@ mkdir Artifact && cd Artifact
 mkdir Art
 ```
 
-### 0.2 Install MPC dependencies.
+### 0.3 Install MPC dependencies.
 
 Install EMP.
 
