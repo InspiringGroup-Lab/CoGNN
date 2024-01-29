@@ -1,7 +1,7 @@
 CoGNN
 ============
 
-CoGNN is a provably secure, efficient and scalable framework for collaborative graph learning. It fully embraces distributed computation among all the participants (graph owners) and requires no centralized (trusted) server. CoGNN works in an in-place computation fashion and never outsources the raw gragh data of each participant, in order to honoring the raw data privacy. It is built upon 2-party secure computation backends, but can support involving an arbitrary number of participants. Currently, it supports the training and inference of GCN. 
+CoGNN is a provably secure, efficient and scalable framework for collaborative graph learning. It fully embraces distributed computation among all the participants (graph owners) and requires no centralized (trusted) server. CoGNN works in an in-place computation fashion and never outsources the raw gragh data of each participant, in order to honor the raw data privacy. It is built upon 2-party secure computation backends, but can support involving an arbitrary number of participants. Currently, it supports the training and inference of GCN. 
 
 ## 0 Set up the dependencies
 
