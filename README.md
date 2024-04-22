@@ -4,11 +4,13 @@ CoGNN Artifact Evaluation Guidance
 > Evaluating these artifacts requires a Linux Server (at least 128GB RAM, 512GB spare disk) equipped with NVIDIA GPU (at least 16GB Memory). Please make sure of this before reading ahead.
 
 This document is dedicated to the Artifact Evaluation Committee (AEC) of our paper *CoGNN: Towards Secure and Efficient Collaborative Graph Learning*. It provides some necessary background information about the paper and contains step-by-step instructions for setting up the artifacts and running the vital experiments in our paper. Here is the table of contents:
-- *0 Background*: some brief background information about CoGNN;
-- *1 Introduction*: introduce these artifacts and their organization;
-- *2 Environment Requirements*: the required hardware resources and software environments;
-- *3 Set Up*: set up the environment by downloading the Docker image we provide;
-- *4 Evaluation*: steps to run each part of the experiments.  
+- [CoGNN Artifact Evaluation Guidance](#cognn-artifact-evaluation-guidance)
+  - [0 Background](#0-background): some brief background information about CoGNN;
+  - [1 Introduction](#1-introduction): introduce these artifacts and their organization;
+  - [2 Environment Requirements](#2-environment-requirements): the required hardware resources and software environments;
+  - [3 Set Up](#3-set-up): set up the environment by downloading the Docker image we provide;
+  - [4 Evaluation](#4-evaluation): steps to run each part of the experiments.  
+
 
 ## 0 Background
 
