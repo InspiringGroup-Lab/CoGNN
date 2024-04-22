@@ -48,6 +48,28 @@ Here is the organization of the artifacts in the Docker image we provide:
                 └── 📁utils
             └── makefile.inc
             └── 📁tools
+                └── 📁data # The data prepared for our evaluations
+                    └── 📁CiteSeer
+                    └── 📁PubMed                
+                    └── 📁Cora
+                        └── 📁processed
+                        └── 📁raw
+                        └── 📁transformed # From 2s to 5s are for efficiency evaluation. The others are for accuracy evaluation
+                            └── 📁2s
+                                └── cora.edge.preprocessed # Edge list
+                                └── cora.part.preprocessed # Partition info (each vertex belongs to which party)
+                                └── cora.vertex.preprocessed # Vertex list
+                                └── cora_config.txt # Training hyperparameters
+                            └── 📁3s
+                            └── 📁4s
+                            └── 📁5s
+                            └── cora.edge.preprocessed
+                            └── cora.part.preprocessed.2p
+                            └── cora.part.preprocessed.3p
+                            └── cora.part.preprocessed.4p
+                            └── cora.part.preprocessed.5p
+                            └── cora.vertex.preprocessed
+                            └── cora_config.txt # Training hyperparameters
                 └── 📁plot # Some plot functions.
                 └── 📁scripts # Scripts for setting up simulated network environments, using network namespace.
                 └── tmp_run_cluster.py # The scripts for running the experiments.
@@ -111,7 +133,8 @@ Please refer to [link 1](https://docs.nvidia.com/datacenter/cloud-native/contain
 
 ## 3 Set Up
 
-As long as you have installed Docker with CUDA support, you can pull the image we prepared. Our image is based on the Ubuntu-CUDA images provided by NIVIDIA. Since these images are bound to specific versions of CUDA runtime, we provide multiple image versions based on different versions CUDA runtimes for the convenience of the AEC. The version information is summarized here:
+As long as you have installed Docker with CUDA support, you can pull the image we prepared. Our image is based on the Ubuntu-CUDA images provided by NIVIDIA. Since these images are bound to specific versions of CUDA runtime, we provide multiple image versions based on different versions of CUDA runtimes for the convenience of the AEC. The version information is summarized here:
+- v1 is based on nvidia/cuda:12.0.0-devel-ubuntu20.04
 - v2 is based on nvidia/cuda:12.4.0-devel-ubuntu20.04
 - v3 is based on nvidia/cuda:12.3.2-devel-ubuntu20.04
 
@@ -168,16 +191,35 @@ The expected output is:
 [100%] Built target gcn-optimize # The executale for optimized GCN training
 ```
 
-Run a smallest training test (2 min):
+Run a smallest training test (~1 min):
+- The smallest training test corresponds to one evaluation setting in our efficiency test, i.e., 2-party training, Cora dataset, 2 epochs with preprocessing. See *Section 7.2.1 Setup-Dataset* of our paper for how efficiency evaluation datasets are set up. 
 ```bash
 cd /work/Art/CoGNN/tools
 python tmp_run_cluster.py
 ```
-
+The expected console output is:
+```bash
+ip netns exec A ./../../bin/gcn-optimize -t 2 -g 2 -i 0 -m 12 -p 1 -s gcn-optimize/cora/2s -c 1 -r 1 ./data/Cora/transformed/2s/cora.edge.preprocessed ./data/Cora/transformed/2s/cora.vertex.preprocessed ./data/Cora/transformed/2s/cora.part.preprocessed ./cognn-smallest/result/gcn-optimize/cora/2s/gcn_test_0.result.cora ./data/Cora/transformed/2s/cora_config.txt
+ip netns exec B ./../../bin/gcn-optimize -t 2 -g 2 -i 1 -m 12 -p 1 -s gcn-optimize/cora/2s -c 1 -r 1 ./data/Cora/transformed/2s/cora.edge.preprocessed ./data/Cora/transformed/2s/cora.vertex.preprocessed ./data/Cora/transformed/2s/cora.part.preprocessed ./cognn-smallest/result/gcn-optimize/cora/2s/gcn_test_1.result.cora ./data/Cora/transformed/2s/cora_config.txt
+```
+The two command lines correspond to two parties (processes). And you will get two new folders under the `tools/` directory, as follows:
+```bash
+└── 📁tools
+    └── 📁data
+    └── 📁plot
+    └── 📁scripts
+    └── 📁preprocess # Preprocessed OEP correlations
+    └── 📁cognn-smallest # The output folder for cognn-smallest test
+        └── 📁comm # Communication of each party
+        └── 📁log # Log of each party, recording detailed running durations and accuracies of each epoch
+        └── 📁result # Output of each party, currently containing nothing since we did not reconstruct the secret shares       
+    └── tmp_run_cluster.py
+```
+Feel free to browse files (especially the log files) under these folders to better understand the running process of CoGNN.
 
 ## 4 Evaluation
 
-Now let's head for the evaluations!
+Now let's head for the full evaluations corresponding to the key results obtained in our paper. After running each part of the evaluation, you'd better clean the `preprocess/` folder. Otherwise you disk space would soon be consumed up.
 
 ```bash
 # Enter the container first. Please select the proper tagname for yourself.
@@ -189,9 +231,12 @@ cd /work/Art/CoGNN/tools/
 python tmp_run_cluster.py
 ```
 
-## 0 Set up the dependencies
 
-### 0.1 Environment Requirement
+> The following scripts tells how to set up dependencies of CoGNN and CoGNN itself from scratch. It is not recommended!
+
+## -1 Set up the dependencies
+
+### -1.1 Environment Requirement
 
 - Ubuntu 20.04
 - g++/gcc 9.4.0
@@ -200,14 +245,14 @@ python tmp_run_cluster.py
 - Python 3.9.13
 - CUDA Driver Version: 535.113.01  CUDA Version: 12.2
 
-### 0.2 Set up the workspace
+### -1.2 Set up the workspace
 
 ```bash
 mkdir Artifact && cd Artifact
 mkdir Art
 ```
 
-### 0.3 Install MPC dependencies.
+### -1.3 Install MPC dependencies.
 
 Install EMP.
 
@@ -216,6 +261,19 @@ cd Artifact
 git clone https://github.com/CoGNN-anon/MPC.git
 cd MPC
 python install.py --deps --tool --ot --sh2pc
+```
+
+Install libOTe.
+
+```bash
+cd Artifact/Art/
+git clone https://github.com/osu-crypto/libOTe.git
+cd libOTe
+git checkout 3a40823
+git submodule update --init
+# Open the serialization module for boost, then:
+python build.py --setup --boost --relic
+python build.py --install=./../lilibOTe -D ENABLE_RELIC=ON -D ENABLE_NP=ON -D ENABLE_KOS=ON -D ENABLE_IKNP=ON -D ENABLE_OOS=ON -D ENABLE_SILENTOT=ON
 ```
 
 Install SCI-SilentOT.
@@ -239,9 +297,9 @@ cd Artifact/MPC
 git clone https://github.com/CoGNN-anon/ophelib.git
 cd ophelib
 mkdir build && cd build
-cmake ..
+cmake .. -DCMAKE_INSTALL_PREFIX=./install
 make -j
-sudo make install
+cmake --build . --target install --parallel
 ```
 
 Install troy (GPU-based FHE).
@@ -251,27 +309,19 @@ cd Artifact/MPC
 git clone https://github.com/CoGNN-anon/troy.git
 cd troy
 mkdir build && cd build
-cmake ..
+cmake .. -DCMAKE_INSTALL_PREFIX=./install
+make -j
 cmake --build . --target install --parallel
 ```
 
-### 0.4 Set Up CMake Dependencies
+### -1.4 Set Up CMake Dependencies
 
 ```bash
 cd Artifact/MPC
 sudo cp -r cmake/* /usr/local/lib/cmake/
 ```
 
-### 0.5 Set Up OT
-
-```bash
-cd Artifact/Art/
-git clone https://github.com/osu-crypto/libOTe.git
-cd libOTe
-python build.py --install=./../lilibOTe -- -D ENABLE_RELIC=ON -D ENABLE_NP=ON -D ENABLE_KOS=ON -D ENABLE_IKNP=ON -D ENABLE_OOS=ON -D ENABLE_SILENTOT=ON
-```
-
-## 1 Set up CoGNN
+## -2 Set up CoGNN
 
 > Note that, you might have to manually set some paths in the CMakeList.txt according to your environment.
 
@@ -286,14 +336,14 @@ cmake .. -DTHREADING=ON
 make -j8
 ```
 
-## 2 Prepare the datasets
+## -3 Prepare the datasets
 
 ```bash
 cd Artifact/Art/CoGNN/tools
 python data_transform.py
 ```
 
-## 3 Run evaluation
+## -4 Run evaluation
 
 ```bash
 cd Artifact/Art/CoGNN/tools
