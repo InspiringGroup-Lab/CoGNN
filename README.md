@@ -111,7 +111,83 @@ Please refer to [link 1](https://docs.nvidia.com/datacenter/cloud-native/contain
 
 ## 3 Set Up
 
+As long as you have installed Docker with CUDA support, you can pull the image we prepared. Our image is based on the Ubuntu-CUDA images provided by NIVIDIA. Since these images are bound to specific versions of CUDA runtime, we provide multiple image versions based on different versions CUDA runtimes for the convenience of the AEC. The version information is summarized here:
+- v2 is based on nvidia/cuda:12.4.0-devel-ubuntu20.04
+- v3 is based on nvidia/cuda:12.3.2-devel-ubuntu20.04
 
+Please pull the proper version according to CUDA driver version and CUDA version you have. (The compressed image size is around 4~10GB. The duration depends on your network condition.)
+Typically the CUDA runtime version has to be smaller than the CUDA toolkit version.
+
+```bash
+sudo docker pull cbackyx/cognn-ae:<tagname>
+```
+
+*Caution:* In case that none of the image versions above satisfy your need, we also provide a workaround by partially building the image on your own using Dockerfile.
+The idea is to copy the artifacts in our image to the image that you are going to build. (This building process would take longer time, also depending on your network condition.)
+Ignore this if we have already provided your desired version.
+
+```bash
+# Pull one of the images above first and run.
+sudo docker pull cbackyx/cognn-ae:v1
+sudo docker run -it --rm --privileged --security-opt apparmor=unconfined --gpus all cbackyx/cognn-ae:v1 /bin/bash
+# Now you can see your <container-id>. Copy it.
+# Open another terminal on your host machine (not in the container!).
+# cd to a proper clean workspace and copy the Dockerfile here. Then:
+mkdir Container-Artifact
+# Copy the artifacts from the container you just started.
+sudo docker cp <container-id>:/work ./Container-Artifact/
+# Modify the first line of the Dockerfile to select the CUDA runtime version you want.
+# Please refer to https://hub.docker.com/r/nvidia/cuda/tags?page=1&page_size=&name=devel-ubuntu20.04&ordering=
+# Now you are ready to build the image.
+sudo docker build -t cbackyx/cognn-ae:tagname .
+```
+
+Now let's have a quick check on the artifacts.
+Build the executables that we need (~5s):
+```bash
+# Enter the container first. Please select the proper tagname for yourself.
+sudo docker run -it --rm --privileged --security-opt apparmor=unconfined --gpus all cbackyx/cognn-ae:<tagname> /bin/bash
+cd /work/Art/build
+make -j
+```
+The expected output is:
+```bash
+[  5%] Built target test-plaintext-gcn-small
+[ 11%] Built target test-plaintext-gcn # The executable for plaintext global training
+[ 17%] Built target test-fed-gcn # The executable for FL (FedAvg)-based approach
+[ 40%] Built target TaskHandler
+[ 45%] Built target test-fhe-wrapper
+[ 51%] Built target test-comm
+[ 57%] Built target gcn-inference-optimize # The executable for optimized GCN inference
+[ 62%] Built target test-server
+[ 68%] Built target test-client
+[ 74%] Built target gcn-ss 
+[ 80%] Built target test-2PC # The executable for 2PC unit test
+[ 88%] Built target test-graphsc # The executale for GraphSC (SML-based state-of-the-art)
+[ 94%] Built target gcn-original # The executale for unoptimized GCN training
+[100%] Built target gcn-optimize # The executale for optimized GCN training
+```
+
+Run a smallest training test (2 min):
+```bash
+cd /work/Art/CoGNN/tools
+python tmp_run_cluster.py
+```
+
+
+## 4 Evaluation
+
+Now let's head for the evaluations!
+
+```bash
+# Enter the container first. Please select the proper tagname for yourself.
+sudo docker run -it --rm --privileged --security-opt apparmor=unconfined --gpus all cbackyx/cognn-ae:<tagname> /bin/bash
+
+# Now you are in the bash of your container. cd to our evaluation scripts.
+cd /work/Art/CoGNN/tools/
+# Run the evaluation scripts.
+python tmp_run_cluster.py
+```
 
 ## 0 Set up the dependencies
 
