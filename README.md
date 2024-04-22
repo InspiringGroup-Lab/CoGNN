@@ -217,7 +217,45 @@ The two command lines correspond to two parties (processes). And you will get tw
         └── 📁result # Output of each party, currently containing nothing since we did not reconstruct the secret shares       
     └── tmp_run_cluster.py
 ```
-Feel free to browse files (especially the log files) under these folders to better understand the running process of CoGNN.
+Feel free to browse files (especially the log files) under these folders to better understand the running process of CoGNN. For example:
+```bash
+root@<container-id>:/work/Art/CoGNN/tools/cognn-smallest/log/gcn-optimize/cora/2s# cat gcn_test_cora_0.log | grep accuracy
+# full set accuracy = 19.188192
+# training set accuracy = 20.370370
+# border training set accuracy = 22.916667
+# test set accuracy = 20.552147
+# border test set accuracy = 21.556886
+# full set accuracy = 24.907749
+# training set accuracy = 28.703704
+# border training set accuracy = 33.333333
+# test set accuracy = 26.073620
+# border test set accuracy = 25.748503
+root@<container-id>:/work/Art/CoGNN/tools/cognn-smallest/log/gcn-optimize/cora/2s# cat gcn_test_cora_0.log | grep "preprocess took"
+# ::preprocess took 7.611 seconds
+root@<container-id>:/work/Art/CoGNN/tools/cognn-smallest/log/gcn-optimize/cora/2s# cat gcn_test_cora_0.log | grep "iteration took"
+# ::iteration took 4.124 seconds
+# ::iteration took 5.253 seconds
+# ::iteration took 0.374 seconds
+# ::iteration took 1.779 seconds
+# ::iteration took 0.429 seconds
+# ::iteration took 7.674 seconds
+# ::iteration took 4.329 seconds
+# ::iteration took 5.428 seconds
+# ::iteration took 0.444 seconds
+# ::iteration took 1.877 seconds
+# ::iteration took 0.407 seconds
+# ::iteration took 9.482 seconds
+root@<container-id>:/work/Art/CoGNN/tools/cognn-smallest/comm# cat Truepreprocess_1scaler_gcn-optimize_cora_2p.comm 
+#         iface   Download     Upload
+# 2  vethA.peer  1237.18MB  1215.83MB
+# 3  vethB.peer  1215.83MB  1237.18MB
+# 0          lo     0.00MB     0.00MB
+# 1         br0     0.00MB     0.00MB
+# 4  vethC.peer     0.00MB     0.00MB
+# 5  vethD.peer     0.00MB     0.00MB
+# 6  vethE.peer     0.00MB     0.00MB
+# 7        eth0     0.00MB     0.00MB
+```
 
 ## 4 Evaluation
 
@@ -233,8 +271,9 @@ cd /work/Art/CoGNN/tools/
 python tmp_run_cluster.py
 ```
 
+-----
 
-> The following scripts tells how to set up dependencies of CoGNN and CoGNN itself from scratch. It is not recommended!
+The following scripts tells how to set up dependencies of CoGNN and CoGNN itself from scratch. They are not recommended!
 
 ## -1 Set up the dependencies
 
