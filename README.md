@@ -32,7 +32,7 @@ In the paper, we compare CoGNN to two branches of related works:
 
 ## 1 Introduction
 
-These artifacts correspond to our prototype implementation of the CoGNN and our evaluations of it. Currently, we implement the training and inference of Graph Convolutional Network (GCN). 
+These artifacts correspond to our prototype implementation of CoGNN and our evaluations of it. Currently, we implement the training and inference of Graph Convolutional Network (GCN). 
 
 Here is the organization of the artifacts in the Docker image we provide:
 
@@ -103,7 +103,7 @@ Here is the organization of the artifacts in the Docker image we provide:
 
 ## 2 Environment Requirements
 
-The source code of CoGNN is available in the repositories owned by this anonymous Github account. However, since building each part of the artifacts along with the dependencies is non-trivial, we provide an out-of-the-box Docker image for convenience.
+The source code of CoGNN is available in the repositories owned by [this anonymous Github account](https://github.com/CoGNN-anon). However, since building each part of the artifacts along with the dependencies is non-trivial, we provide an out-of-the-box Docker image for convenience.
 
 We summarize the required hardware resources and software conditions for running the Docker image we provide.
 
