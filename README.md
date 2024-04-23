@@ -1,15 +1,18 @@
 CoGNN Artifact Evaluation Guidance
 ============
 
-> Evaluating these artifacts requires a Linux Server (at least 128GB RAM, 512GB spare disk) equipped with NVIDIA GPU (at least 16GB Memory). Please make sure of this before reading ahead.
+> *Cautions*: 
+> - Evaluating these artifacts requires an x86_64 Linux Server (at least 128GB RAM, 512GB spare disk) equipped with NVIDIA GPU (at least 16GB Memory).
+> - We pack our artifacts in a Docker image. The compressed size is around 4~10GB. We provide instructions for setting up CUDA support for your Docker.  
+> - Running a smallest test of our artifacts needs around 1 minute, but fully running all the experiments in our paper might take 3 days or more.
+> - Please make sure these details before reading ahead.
 
 This document is dedicated to the Artifact Evaluation Committee (AEC) of our paper *CoGNN: Towards Secure and Efficient Collaborative Graph Learning*. It provides some necessary background information about the paper and contains step-by-step instructions for setting up the artifacts and running the vital experiments in our paper. Here is the table of contents:
-- [CoGNN Artifact Evaluation Guidance](#cognn-artifact-evaluation-guidance)
-  - [0 Background](#0-background): some brief background information about CoGNN;
-  - [1 Introduction](#1-introduction): introduce these artifacts and their organization;
-  - [2 Environment Requirements](#2-environment-requirements): the required hardware resources and software environments;
-  - [3 Set Up](#3-set-up): set up the environment by downloading the Docker image we provide;
-  - [4 Evaluation](#4-evaluation): steps to run each part of the experiments.  
+- [0 Background](#0-background): some brief background information about CoGNN;
+- [1 Introduction](#1-introduction): introduce these artifacts and their organization;
+- [2 Environment Requirements](#2-environment-requirements): the required hardware resources and software environments;
+- [3 Set Up](#3-set-up): set up the environment by downloading the Docker image we provide;
+- [4 Evaluation](#4-evaluation): steps to run each part of the experiments.  
 
 
 ## 0 Background
@@ -105,7 +108,7 @@ The source code of CoGNN is available in the repositories owned by this anonymou
 We summarize the required hardware resources and software conditions for running the Docker image we provide.
 
 **Hardware Resources**
-- A x86-64 Linux server (at least 128GB RAM, 512GB spare disk)
+- An x86_64 Linux server (at least 128GB RAM, 512GB spare disk)
     - We tested on Intel(R) Xeon(R) Gold 6348 CPU @ 2.60GHz
 - NVIDIA GPU (at least 16GB Memory)
     - We tested on NVIDIA A100 80GB PCIe and NVIDIA GeForce RTX 4090
@@ -174,36 +177,36 @@ Build the executables that we need (~5s):
 sudo docker run -it --rm --privileged --security-opt apparmor=unconfined --gpus all cbackyx/cognn-ae:<tagname> /bin/bash
 cd /work/Art/build
 make -j
-```
-The expected output is:
-```bash
-[  5%] Built target test-plaintext-gcn-small
-[ 11%] Built target test-plaintext-gcn # The executable for plaintext global training
-[ 17%] Built target test-fed-gcn # The executable for FL (FedAvg)-based approach
-[ 40%] Built target TaskHandler
-[ 45%] Built target test-fhe-wrapper
-[ 51%] Built target test-comm
-[ 57%] Built target gcn-inference-optimize # The executable for optimized GCN inference
-[ 62%] Built target test-server
-[ 68%] Built target test-client
-[ 74%] Built target gcn-ss 
-[ 80%] Built target test-2PC # The executable for 2PC unit test
-[ 88%] Built target test-graphsc # The executale for GraphSC (SML-based state-of-the-art)
-[ 94%] Built target gcn-original # The executale for unoptimized GCN training
-[100%] Built target gcn-optimize # The executale for optimized GCN training
+
+# The expected output is:
+# [  5%] Built target test-plaintext-gcn-small
+# [ 11%] Built target test-plaintext-gcn # The executable for plaintext global training
+# [ 17%] Built target test-fed-gcn # The executable for FL (FedAvg)-based approach
+# [ 40%] Built target TaskHandler
+# [ 45%] Built target test-fhe-wrapper
+# [ 51%] Built target test-comm
+# [ 57%] Built target gcn-inference-optimize # The executable for optimized GCN inference
+# [ 62%] Built target test-server
+# [ 68%] Built target test-client
+# [ 74%] Built target gcn-ss 
+# [ 80%] Built target test-2PC # The executable for 2PC unit test
+# [ 88%] Built target test-graphsc # The executale for GraphSC (SML-based state-of-the-art)
+# [ 94%] Built target gcn-original # The executale for unoptimized GCN training
+# [100%] Built target gcn-optimize # The executale for optimized GCN training
 ```
 
 Run a smallest training test (~1 min):
-- The smallest training test corresponds to one evaluation setting in our efficiency test, i.e., 2-party training, Cora dataset, 2 epochs with preprocessing. See *Section 7.2.1 Setup-Dataset* of our paper for how efficiency evaluation datasets are set up. 
+- The smallest training test corresponds to one specific evaluation setting in our efficiency test, i.e., 2-party training, Cora dataset, 2 epochs with preprocessing. See *Section 7.2.1 Setup-Dataset* of our paper for how efficiency evaluation datasets are set up. 
+- This is not as fast as what we measured on the host machine due to the virtualization of Docker. 
 ```bash
 cd /work/Art/CoGNN/tools
 python tmp_run_cluster.py
+
+# The expected console output is:
+# ip netns exec A ./../../bin/gcn-optimize -t 2 -g 2 -i 0 -m 12 -p 1 -s gcn-optimize/cora/2s -c 1 -r 1 ./data/Cora/transformed/2s/cora.edge.preprocessed ./data/Cora/transformed/2s/cora.vertex.preprocessed ./data/Cora/transformed/2s/cora.part.preprocessed ./cognn-smallest/result/gcn-optimize/cora/2s/gcn_test_0.result.cora ./data/Cora/transformed/2s/cora_config.txt
+# ip netns exec B ./../../bin/gcn-optimize -t 2 -g 2 -i 1 -m 12 -p 1 -s gcn-optimize/cora/2s -c 1 -r 1 ./data/Cora/transformed/2s/cora.edge.preprocessed ./data/Cora/transformed/2s/cora.vertex.preprocessed ./data/Cora/transformed/2s/cora.part.preprocessed ./cognn-smallest/result/gcn-optimize/cora/2s/gcn_test_1.result.cora ./data/Cora/transformed/2s/cora_config.txt
 ```
-The expected console output is:
-```bash
-ip netns exec A ./../../bin/gcn-optimize -t 2 -g 2 -i 0 -m 12 -p 1 -s gcn-optimize/cora/2s -c 1 -r 1 ./data/Cora/transformed/2s/cora.edge.preprocessed ./data/Cora/transformed/2s/cora.vertex.preprocessed ./data/Cora/transformed/2s/cora.part.preprocessed ./cognn-smallest/result/gcn-optimize/cora/2s/gcn_test_0.result.cora ./data/Cora/transformed/2s/cora_config.txt
-ip netns exec B ./../../bin/gcn-optimize -t 2 -g 2 -i 1 -m 12 -p 1 -s gcn-optimize/cora/2s -c 1 -r 1 ./data/Cora/transformed/2s/cora.edge.preprocessed ./data/Cora/transformed/2s/cora.vertex.preprocessed ./data/Cora/transformed/2s/cora.part.preprocessed ./cognn-smallest/result/gcn-optimize/cora/2s/gcn_test_1.result.cora ./data/Cora/transformed/2s/cora_config.txt
-```
+
 The two command lines correspond to two parties (processes). And you will get two new folders under the `tools/` directory, as follows:
 ```bash
 └── 📁tools
@@ -261,6 +264,37 @@ root@<container-id>:/work/Art/CoGNN/tools/cognn-smallest/comm# cat Truepreproces
 
 Now let's head for the full evaluations corresponding to the key results obtained in our paper. After running each part of the evaluation, you'd better clean the `preprocess/` folder. Otherwise you disk space would soon be consumed up.
 
+You can see the following functions in `tools/tmp_run_cluster.py`:
+
+```python
+# Evaluate the accuracy of CoGNN-Opt for the three datasets and for different numbers of parties. Trained for 90 epochs under each setting. 
+# Note that, every 6 iterations correspond to 1 epoch of CoGNN-Opt, where the former 2 (GAS) iterations are in a forward pass and the latter 4 iterations are in a backward pass. 
+def eval_cognn_opt_accuracy():
+
+# Evaluate the training efficiency of GraphSC for the three datasets and for different numbers of parties. Trained for 1 epoch under each setting. 
+# Note that, every 4 iterations correspond to 1 epoch of GraphSC, where the former 2 (GAS) iterations are in a forward pass and the latter 2 iterations are in a backward pass. 
+def eval_graphsc_efficiency():
+
+# Evaluate the training efficiency of CoGNN-Opt for the three datasets and for different numbers of parties. Trained for 1 epoch under each setting. 
+# Note that, every 6 iterations correspond to 1 epoch of CoGNN-Opt, where the former 2 (GAS) iterations are in a forward pass and the latter 4 iterations are in a backward pass. 
+def eval_cognn_opt_efficiency():
+
+# Evaluate the training efficiency of CoGNN for the three datasets and for different numbers of parties. Trained for 1 epoch under each setting. 
+# Note that, every 4 iterations correspond to 1 epoch of CoGNN, where the former 2 (GAS) iterations are in a forward pass and the latter 2 iterations are in a backward pass.
+def eval_cognn_unopt_efficiency():
+
+# Evaluate the inference efficiency of CoGNN-Opt for the three datasets and for 2 parties. Full-graph inference for 1 time under each setting. 
+# Note that, every 2 iterations correspond to 1 inference of CoGNN-Opt.
+def eval_cognn_opt_inference_efficiency():
+
+# Evaluate the inference efficiency of CoGNN for the three datasets and for 2 parties. Full-graph inference for 1 time under each setting. 
+# Note that, every 2 iterations correspond to 1 inference of CoGNN.
+def eval_cognn_unopt_inference_efficiency():
+
+# The smallest training test corresponds to one specific evaluation setting in our efficiency test, i.e., 2-party training, Cora dataset, 2 epochs with preprocessing.
+def smallest_eval_cognn_efficiency():
+```
+
 ```bash
 # Enter the container first. Please select the proper tagname for yourself.
 sudo docker run -it --rm --privileged --security-opt apparmor=unconfined --gpus all cbackyx/cognn-ae:<tagname> /bin/bash
@@ -312,7 +346,7 @@ git clone https://github.com/osu-crypto/libOTe.git
 cd libOTe
 git checkout 3a40823
 git submodule update --init
-# Open the serialization module for boost, then:
+# Open the serialization module for boost, in 'libOTe/cryptoTools/thirdparty/getBoost.py'. Then:
 python build.py --setup --boost --relic
 python build.py --install=./../lilibOTe -D ENABLE_RELIC=ON -D ENABLE_NP=ON -D ENABLE_KOS=ON -D ENABLE_IKNP=ON -D ENABLE_OOS=ON -D ENABLE_SILENTOT=ON
 ```
