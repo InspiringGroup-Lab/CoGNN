@@ -263,11 +263,11 @@ root@<container-id>:/work/Art/CoGNN/tools/cognn-smallest/comm# cat Truepreproces
 
 ## 4 Evaluation
 
-Now let's head for the full evaluations corresponding to the key results obtained in our paper. 
+Now let's head for the full evaluations corresponding to the key results obtained in our paper. Fully running all the experiments in our paper might **take 3 days or more**. You can selectively verify some specific settings.
 
-**After running each part of the evaluation, you'd better clean the `preprocess/` folder. Otherwise you disk space would soon be consumed up.**
-
-**DO NOT** clean the log and comm folders, since they would be used for plot.
+**Cautions:**
+- After running each part of the evaluation, you'd better **clean the `preprocess/` folder**. Otherwise you disk space would soon be consumed up.
+- **DO NOT** clean the log and comm folders, since they would be used for plot.
 
 Set up a container and cd to our evaluation scripts:
 ```bash
