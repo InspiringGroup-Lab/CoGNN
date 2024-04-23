@@ -298,8 +298,8 @@ python tmp_run_cluster.py -h
 
 # optional arguments:
 #   -h, --help            show this help message and exit
-#   --cognn-opt-accuracy  Evaluate CoGNN-Opt accuracy (~16h, Figure 7, Table 1)
-#   --cognn-unopt-accuracy  Evaluate CoGNN-Opt effiency under the accuracy setting (~6h, Table 7)
+#   --cognn-opt-accuracy  Evaluate CoGNN-Opt accuracy (~16h, Figure 7, Table 1, Table 9)
+#   --cognn-unopt-accuracy  Evaluate CoGNN-Opt effiency under the accuracy setting (~6h, Table 7, Table 9)
 #   --fedgnn-accuracy     Evaluate FL-based GNN accuracy (~30min, Figure 7)
 #   --plaintextgnn-accuracy
 #                         Evaluate Plaintext GNN accuracy (~1h, Figure 7)
@@ -307,7 +307,7 @@ python tmp_run_cluster.py -h
 #   --cognn-opt-efficiency
 #                         Evaluate CoGNN-Opt efficiency (~1h, Figure 6)
 #   --cognn-unopt-efficiency
-#                         Evaluate CoGNN unoptimized efficiency (~8h, Figure 6, Table 7)
+#                         Evaluate CoGNN unoptimized efficiency (~8h, Figure 6)
 #   --cognn-opt-inference
 #                         Evaluate CoGNN-Opt inference efficiency (~10min, Table 2, Table 10)
 #   --cognn-unopt-inference
