@@ -289,7 +289,7 @@ cd /work/Art/CoGNN/tools/
 ```
 
 The evaluation options provided by `tmp_run_cluster.py` include:
-
+> Note that we also specify which option (setting) corresponds to which Figure/Table in our paper. 
 ```bash
 python tmp_run_cluster.py -h
 # usage: tmp_run_cluster.py [-h] [--cognn-opt-accuracy] [--fedgnn-accuracy] [--plaintextgnn-accuracy] [--graphsc-efficiency] [--cognn-opt-efficiency] [--cognn-unopt-efficiency] [--cognn-opt-inference] [--cognn-unopt-inference] [--smallest-cognn-efficiency]
