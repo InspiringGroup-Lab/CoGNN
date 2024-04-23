@@ -3,15 +3,15 @@ CoGNN Artifact Evaluation Guidance
 
 > *Cautions*: 
 > - Evaluating these artifacts requires an x86_64 Linux Server (at least 128GB RAM, 512GB spare disk) equipped with NVIDIA GPU (at least 16GB Memory).
-> - We pack our artifacts in a Docker image. The compressed size is around 4~10GB. We provide instructions for setting up CUDA support for your Docker.  
+> - We pack our artifacts in a Docker image. The compressed size is around 4~6GB. We provide instructions for setting up CUDA support for your Docker.  
 > - Running a smallest test of our artifacts needs around 1 minute, but fully running all the experiments in our paper might take 3 days or more.
-> - Please make sure of these details before reading ahead.
+> - Please make sure of these details before deciding to read ahead.
 
 This document is dedicated to the Artifact Evaluation Committee (AEC) of our paper *CoGNN: Towards Secure and Efficient Collaborative Graph Learning*. It provides some necessary background information about the paper and contains step-by-step instructions for setting up the artifacts and running the vital experiments in our paper. Here is the table of contents:
 - [0 Background](#0-background): some brief background information about CoGNN;
 - [1 Introduction](#1-introduction): introduce these artifacts and their organization;
 - [2 Environment Requirements](#2-environment-requirements): the required hardware resources and software environments;
-- [3 Set Up](#3-set-up): set up the environment by downloading the Docker image we provide;
+- [3 Set Up](#3-set-up): set up the artifacts by downloading the Docker image we provide;
 - [4 Evaluation](#4-evaluation): steps to run each part of the experiments.  
 
 
@@ -24,15 +24,21 @@ Performing GNN learning on the global graph yields a more comprehensive view tha
 The core features of CoGNN are two-fold: 
 
 - CoGNN works in an in-place computation fashion where the graph owners act as the computing parties. It never outsources the raw gragh data of each participant, in order to honor the raw data privacy. It is built upon 2-party secure computation backends, but can support involving an arbitrary number of parties. This is different from prior works that are also built upon MPC, which outsouce the graph data to a fixed number of third-party computing parties.
-- CoGNN fully embraces distributed computation among all the parties and requires no centralized (trusted) server. The distributed computation makes it scalable as more parties are involved and the size of the global graph grows. 
+- CoGNN fully embraces distributed computation among all the parties and requires no centralized (trusted) server. The distributed computation makes it scalable as more parties are involved and as the size of the global graph grows. 
 
 In the paper, we compare CoGNN to two branches of related works:
-- Efficiency (running duration & per-party communication) comparison with Secure Machine Learning (SML)-based works. These works achieve the same level of privacy guarantee and model accuracy as CoGNN. So we compare with them for efficiency.
-- Accuracy comparison with Federated learning (FL)-based works. These works are faster than CoGNN since they use plaintext computation, but are thus also privacy-leaking. Additionally, they can not handle inter-edges, limiting the accuracy of the global model. So we compare model accuracy to them, in order to show that inter-edges are important for model accuracy.
+- *Efficiency & scalability (running duration & per-party communication) comparison* with Secure Machine Learning (SML)-based works. These works achieve the same level of privacy guarantee and model accuracy as CoGNN. So we compare with them for efficiency.
+- *Accuracy (model performance) comparison* with Federated learning (FL)-based works. These works are faster than CoGNN since they use plaintext computation, but are thus also privacy-leaking. Additionally, they can not handle inter-edges, limiting the accuracy of the global model. So we compare model accuracy to them, in order to show that inter-edges are important for model accuracy.
 
 ## 1 Introduction
 
 These artifacts correspond to our prototype implementation of CoGNN and our evaluations of it. Currently, we implement the training and inference of Graph Convolutional Network (GCN). 
+
+Our evaluations include:
+- *Efficiency & Scalability*: measure the *running duration* and *communication* of each party during training (1 epoch) and inference (1 full-graph inference)
+    - Compared schemes: CoGNN, CoGNN-Opt (optimized CoGNN), GraphSC (SML-based SOTA)
+- *Accuracy*: measure model accuracies on *the whole test dataset* and *the border test dataset*, after training for 90 epochs
+    - Compared schemes: CoGNN-Opt, FedGNN (FL-based, FedAvg), PlaintextGNN (plaintext global graph training)
 
 Here is the organization of the artifacts in the Docker image we provide:
 
@@ -41,7 +47,7 @@ Here is the organization of the artifacts in the Docker image we provide:
     └── 📁Art # The main part of our artifacts
         └── 📁CoGNN
             └── 📁algo_kernels
-                └── 📁common_harness # The entrance of the built executable
+                └── 📁common_harness # The main function (executable entrance)
                 └── 📁vertex_centric
                     └── 📁optimize-gcn # Defines the Scatter-Gather-Apply (GAS) operations for our optimized version of GCN training
                     └── 📁optimize-gcn-inference # Defines the Scatter-Gather-Apply (GAS) operations for our optimized version of GCN inference
@@ -78,7 +84,7 @@ Here is the organization of the artifacts in the Docker image we provide:
                 └── 📁plot # Some plot functions.
                 └── 📁scripts # Scripts for setting up simulated network environments, using network namespace.
                 └── tmp_run_cluster.py # The scripts for running the experiments.
-        └── 📁Task-Worker
+        └── 📁Task-Worker # MPC & HE-based computations for CoGNN
             └── 📁include
                 └── ObliviousMapper.h # The definition of OEP 
                 └── SCIHarness.h # The wrapper for the SCI-SilentOT backend for GNN 2PC computations
@@ -97,7 +103,7 @@ Here is the organization of the artifacts in the Docker image we provide:
         └── 📁SCI-SilentOT # For generic secure two-party computation
         └── 📁cmake
         └── install.py # For install EMP-related dependencies
-        └── 📁ophelib # For Paillier (This is not used in current implementation)
+        └── 📁ophelib # For Paillier (This is not used in the current implementation)
         └── 📁troy # For GPU-accelerated FHE
 ```
 
@@ -109,7 +115,7 @@ We summarize the required hardware resources and software conditions for running
 
 **Hardware Resources**
 - An x86_64 Linux server (at least 128GB RAM, 512GB spare disk)
-    - We tested on Intel(R) Xeon(R) Gold 6348 CPU @ 2.60GHz
+    - We tested on Intel(R) Xeon(R) Gold 6348 CPU @ 2.60GHz with 512GB RAM
 - NVIDIA GPU (at least 16GB Memory)
     - We tested on NVIDIA A100 80GB PCIe and NVIDIA GeForce RTX 4090
 
@@ -144,8 +150,8 @@ As long as you have installed Docker with CUDA support, you can pull the image w
 - v3 is based on nvidia/cuda:12.3.2-devel-ubuntu20.04
 - v4 is based on nvidia/cuda:11.6.1-devel-ubuntu20.04
 
-Please pull the proper version according to CUDA driver version and CUDA version you have. (The compressed image size is around 4~10GB. The duration depends on your network condition.)
-Typically the CUDA runtime version has to be smaller than the CUDA toolkit version.
+Please pull the proper version according to CUDA driver version and CUDA version you have. (The compressed image size is around 4~7GB. The duration (~10min or more) depends on your network condition.)
+Typically the CUDA runtime version has to be smaller than the CUDA toolkit version of your host machine.
 
 ```bash
 sudo docker pull cbackyx/cognn-ae:<tagname>
@@ -165,7 +171,7 @@ sudo docker run -it --rm --privileged --security-opt apparmor=unconfined --gpus 
 mkdir Container-Artifact
 # Copy the artifacts from the container you just started.
 sudo docker cp <container-id>:/work ./Container-Artifact/
-# Modify the first line of the Dockerfile to select the CUDA runtime version you want.
+# Modify the first line of the Dockerfile to select the CUDA runtime version you want. (You MUST use a devel version, since we need CUDA headers for compilation.)
 # Please refer to https://hub.docker.com/r/nvidia/cuda/tags?page=1&page_size=&name=devel-ubuntu20.04&ordering=
 # Now you are ready to build the image.
 sudo docker build -t cbackyx/cognn-ae:tagname .
@@ -176,6 +182,9 @@ Build the executables that we need (~5s):
 ```bash
 # Enter the container first. Please select the proper tagname for yourself.
 sudo docker run -it --rm --privileged --security-opt apparmor=unconfined --gpus all cbackyx/cognn-ae:<tagname> /bin/bash
+# Check if your GPU can be accessed
+nvidia-smi 
+# Check if the artifacts can be built
 cd /work/Art/build
 make -j
 
@@ -197,8 +206,8 @@ make -j
 ```
 
 Run a smallest training test (~1 min):
-- The smallest training test corresponds to one specific evaluation setting in our efficiency test, i.e., 2-party training, Cora dataset, 2 epochs with preprocessing. See *Section 7.2.1 Setup-Dataset* of our paper for how efficiency evaluation datasets are set up. 
-- This is not as fast as what we measured on the host machine due to the virtualization of Docker. 
+- The smallest training test corresponds to one specific setting in our efficiency evaluation, i.e., 2-party training, Cora dataset, 2 epochs with preprocessing. See *Section 7.2.1 Setup-Dataset* of our paper for how efficiency evaluation datasets are set up. 
+- This might not be as fast as what we measured on the host machine due to the virtualization of Docker (as well as your hardware resources). 
 ```bash
 cd /work/Art/CoGNN/tools
 python tmp_run_cluster.py --smallest-cognn-efficiency
@@ -208,12 +217,13 @@ python tmp_run_cluster.py --smallest-cognn-efficiency
 # ip netns exec B ./../../bin/gcn-optimize -t 2 -g 2 -i 1 -m 12 -p 1 -s gcn-optimize/cora/2s -c 1 -r 1 ./data/Cora/transformed/2s/cora.edge.preprocessed ./data/Cora/transformed/2s/cora.vertex.preprocessed ./data/Cora/transformed/2s/cora.part.preprocessed ./cognn-smallest/result/gcn-optimize/cora/2s/gcn_test_1.result.cora ./data/Cora/transformed/2s/cora_config.txt
 ```
 
-The two command lines correspond to two parties (processes). And you will get two new folders under the `tools/` directory, as follows:
+The two command lines correspond to two parties (processes). And you will get three new folders under the `tools/` directory, as follows:
 ```bash
 └── 📁tools
     └── 📁data
     └── 📁plot
     └── 📁scripts
+    └── 📁ot-data # OT correlations for Ferret-OT (EMP)
     └── 📁preprocess # Preprocessed OEP correlations
     └── 📁cognn-smallest # The output folder for cognn-smallest test
         └── 📁comm # Communication of each party
@@ -288,22 +298,27 @@ python tmp_run_cluster.py -h
 
 # optional arguments:
 #   -h, --help            show this help message and exit
-#   --cognn-opt-accuracy  Evaluate CoGNN-Opt accuracy
-#   --fedgnn-accuracy     Evaluate FL-based GNN accuracy
+#   --cognn-opt-accuracy  Evaluate CoGNN-Opt accuracy (~16h, Figure 7, Table 1)
+#   --cognn-unopt-accuracy  Evaluate CoGNN-Opt effiency under the accuracy setting (~6h, Table 7)
+#   --fedgnn-accuracy     Evaluate FL-based GNN accuracy (~30min, Figure 7)
 #   --plaintextgnn-accuracy
-#                         Evaluate Plaintext GNN accuracy
-#   --graphsc-efficiency  Evaluate GraphSC efficiency
+#                         Evaluate Plaintext GNN accuracy (~1h, Figure 7)
+#   --graphsc-efficiency  Evaluate GraphSC efficiency (~20h, Figure 6)
 #   --cognn-opt-efficiency
-#                         Evaluate CoGNN-Opt efficiency
+#                         Evaluate CoGNN-Opt efficiency (~1h, Figure 6)
 #   --cognn-unopt-efficiency
-#                         Evaluate CoGNN unoptimized efficiency
+#                         Evaluate CoGNN unoptimized efficiency (~8h, Figure 6, Table 7)
 #   --cognn-opt-inference
-#                         Evaluate CoGNN-Opt inference efficiency
+#                         Evaluate CoGNN-Opt inference efficiency (~10min, Table 2, Table 10)
 #   --cognn-unopt-inference
-#                         Evaluate CoGNN unoptimized inference efficiency
+#                         Evaluate CoGNN unoptimized inference efficiency (~6h, Table 8, Table 10)
 #   --smallest-cognn-efficiency
-#                         Evaluate smallest CoGNN efficiency
+#                         Evaluate smallest CoGNN efficiency (~1min)
 ```
+
+See the function annotations in `tmp_run_cluster.py` for the detailed information on each evaluation setting.
+
+You can `cat` the corresponding log files for each evaluation setting to view the current running progress.
 
 As you have run all the experiments listed above, plot the results:
 
