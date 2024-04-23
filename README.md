@@ -5,7 +5,7 @@ CoGNN Artifact Evaluation Guidance
 > - Evaluating these artifacts requires an x86_64 Linux Server (at least 128GB RAM, 512GB spare disk) equipped with NVIDIA GPU (at least 16GB Memory).
 > - We pack our artifacts in a Docker image. The compressed size is around 4~10GB. We provide instructions for setting up CUDA support for your Docker.  
 > - Running a smallest test of our artifacts needs around 1 minute, but fully running all the experiments in our paper might take 3 days or more.
-> - Please make sure these details before reading ahead.
+> - Please make sure of these details before reading ahead.
 
 This document is dedicated to the Artifact Evaluation Committee (AEC) of our paper *CoGNN: Towards Secure and Efficient Collaborative Graph Learning*. It provides some necessary background information about the paper and contains step-by-step instructions for setting up the artifacts and running the vital experiments in our paper. Here is the table of contents:
 - [0 Background](#0-background): some brief background information about CoGNN;
@@ -200,7 +200,7 @@ Run a smallest training test (~1 min):
 - This is not as fast as what we measured on the host machine due to the virtualization of Docker. 
 ```bash
 cd /work/Art/CoGNN/tools
-python tmp_run_cluster.py
+python tmp_run_cluster.py --smallest-cognn-efficiency
 
 # The expected console output is:
 # ip netns exec A ./../../bin/gcn-optimize -t 2 -g 2 -i 0 -m 12 -p 1 -s gcn-optimize/cora/2s -c 1 -r 1 ./data/Cora/transformed/2s/cora.edge.preprocessed ./data/Cora/transformed/2s/cora.vertex.preprocessed ./data/Cora/transformed/2s/cora.part.preprocessed ./cognn-smallest/result/gcn-optimize/cora/2s/gcn_test_0.result.cora ./data/Cora/transformed/2s/cora_config.txt
@@ -262,47 +262,56 @@ root@<container-id>:/work/Art/CoGNN/tools/cognn-smallest/comm# cat Truepreproces
 
 ## 4 Evaluation
 
-Now let's head for the full evaluations corresponding to the key results obtained in our paper. After running each part of the evaluation, you'd better clean the `preprocess/` folder. Otherwise you disk space would soon be consumed up.
+Now let's head for the full evaluations corresponding to the key results obtained in our paper. 
 
-You can see the following functions in `tools/tmp_run_cluster.py`:
+**After running each part of the evaluation, you'd better clean the `preprocess/` folder. Otherwise you disk space would soon be consumed up.**
 
-```python
-# Evaluate the accuracy of CoGNN-Opt for the three datasets and for different numbers of parties. Trained for 90 epochs under each setting. 
-# Note that, every 6 iterations correspond to 1 epoch of CoGNN-Opt, where the former 2 (GAS) iterations are in a forward pass and the latter 4 iterations are in a backward pass. 
-def eval_cognn_opt_accuracy():
+**DO NOT** clean the log and comm folders, since they would be used for plot.
 
-# Evaluate the training efficiency of GraphSC for the three datasets and for different numbers of parties. Trained for 1 epoch under each setting. 
-# Note that, every 4 iterations correspond to 1 epoch of GraphSC, where the former 2 (GAS) iterations are in a forward pass and the latter 2 iterations are in a backward pass. 
-def eval_graphsc_efficiency():
-
-# Evaluate the training efficiency of CoGNN-Opt for the three datasets and for different numbers of parties. Trained for 1 epoch under each setting. 
-# Note that, every 6 iterations correspond to 1 epoch of CoGNN-Opt, where the former 2 (GAS) iterations are in a forward pass and the latter 4 iterations are in a backward pass. 
-def eval_cognn_opt_efficiency():
-
-# Evaluate the training efficiency of CoGNN for the three datasets and for different numbers of parties. Trained for 1 epoch under each setting. 
-# Note that, every 4 iterations correspond to 1 epoch of CoGNN, where the former 2 (GAS) iterations are in a forward pass and the latter 2 iterations are in a backward pass.
-def eval_cognn_unopt_efficiency():
-
-# Evaluate the inference efficiency of CoGNN-Opt for the three datasets and for 2 parties. Full-graph inference for 1 time under each setting. 
-# Note that, every 2 iterations correspond to 1 inference of CoGNN-Opt.
-def eval_cognn_opt_inference_efficiency():
-
-# Evaluate the inference efficiency of CoGNN for the three datasets and for 2 parties. Full-graph inference for 1 time under each setting. 
-# Note that, every 2 iterations correspond to 1 inference of CoGNN.
-def eval_cognn_unopt_inference_efficiency():
-
-# The smallest training test corresponds to one specific evaluation setting in our efficiency test, i.e., 2-party training, Cora dataset, 2 epochs with preprocessing.
-def smallest_eval_cognn_efficiency():
-```
-
+Set up a container and cd to our evaluation scripts:
 ```bash
 # Enter the container first. Please select the proper tagname for yourself.
 sudo docker run -it --rm --privileged --security-opt apparmor=unconfined --gpus all cbackyx/cognn-ae:<tagname> /bin/bash
 
 # Now you are in the bash of your container. cd to our evaluation scripts.
 cd /work/Art/CoGNN/tools/
-# Run the evaluation scripts.
-python tmp_run_cluster.py
+```
+
+The evaluation options provided by `tmp_run_cluster.py` include:
+
+```bash
+python tmp_run_cluster.py -h
+# usage: tmp_run_cluster.py [-h] [--cognn-opt-accuracy] [--fedgnn-accuracy] [--plaintextgnn-accuracy] [--graphsc-efficiency] [--cognn-opt-efficiency] [--cognn-unopt-efficiency] [--cognn-opt-inference] [--cognn-unopt-inference] [--smallest-cognn-efficiency]
+
+# Evaluate CoGNN and GraphSC models.
+
+# optional arguments:
+#   -h, --help            show this help message and exit
+#   --cognn-opt-accuracy  Evaluate CoGNN-Opt accuracy
+#   --fedgnn-accuracy     Evaluate FL-based GNN accuracy
+#   --plaintextgnn-accuracy
+#                         Evaluate Plaintext GNN accuracy
+#   --graphsc-efficiency  Evaluate GraphSC efficiency
+#   --cognn-opt-efficiency
+#                         Evaluate CoGNN-Opt efficiency
+#   --cognn-unopt-efficiency
+#                         Evaluate CoGNN unoptimized efficiency
+#   --cognn-opt-inference
+#                         Evaluate CoGNN-Opt inference efficiency
+#   --cognn-unopt-inference
+#                         Evaluate CoGNN unoptimized inference efficiency
+#   --smallest-cognn-efficiency
+#                         Evaluate smallest CoGNN efficiency
+```
+
+As you have run all the experiments listed above, plot the results:
+
+```bash
+cd /work/Art/CoGNN/tools/plot
+python plot_duration_and_comm_scale.py # Figure 6
+python plot_multiparty_accuracy.py # Figure 7, Table 11, 12
+python plot_duration_breakdown_and_comm.py # Table 1, 2, 7, 8, 9, 10
+python plot_message_passing_comm.py # Table 6
 ```
 
 -----
