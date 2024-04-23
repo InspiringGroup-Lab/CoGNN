@@ -142,6 +142,7 @@ As long as you have installed Docker with CUDA support, you can pull the image w
 - v1 is based on nvidia/cuda:12.0.0-devel-ubuntu20.04
 - v2 is based on nvidia/cuda:12.4.0-devel-ubuntu20.04
 - v3 is based on nvidia/cuda:12.3.2-devel-ubuntu20.04
+- v4 is based on nvidia/cuda:11.6.1-devel-ubuntu20.04
 
 Please pull the proper version according to CUDA driver version and CUDA version you have. (The compressed image size is around 4~10GB. The duration depends on your network condition.)
 Typically the CUDA runtime version has to be smaller than the CUDA toolkit version.
