@@ -12,6 +12,7 @@ This document is dedicated to the Artifact Evaluation Committee (AEC) of our pap
 - [1 Introduction](#1-introduction): introduce these artifacts and their organization;
 - [2 Environment Requirements](#2-environment-requirements): the required hardware resources and software environments;
 - [3 Set Up](#3-set-up): set up the artifacts by downloading the Docker image we provide;
+    - [Troubleshooting](#troubleshooting): help us troubleshooting using GDB if your outputs are not as expected;
 - [4 Evaluation](#4-evaluation): steps to run each part of the experiments.  
 
 
@@ -270,6 +271,44 @@ root@<container-id>:/work/Art/CoGNN/tools/cognn-smallest/comm# cat Truepreproces
 # 6  vethE.peer     0.00MB     0.00MB
 # 7        eth0     0.00MB     0.00MB
 ```
+
+### Troubleshooting
+
+If you find that your outputs are not as expected, please provide us with some necessary GDB debug information for helping troubleshoot.
+
+Using the example of the smallest test, here we introduce how to collect the GDB information by manually running the process of each party. 
+
+```bash
+# Start two bash windows for the container. Each window is for running a party process.
+sudo docker run -it --rm --privileged --security-opt apparmor=unconfined --gpus all cbackyx/cognn-ae:<tagname> /bin/bash
+sudo docker exec -it <your-container-id> /bin/bash
+
+# Inside the first bash window of your container
+# Install GDB
+apt install -y gdb
+cd /work/Art/CoGNN/tools
+# The following line is for setting up the network namespace and the result folders only.
+# Halt it (Ctrl + C) immediately once you see the following console output (before the test completes).
+# ip netns exec A ./../../bin/gcn-optimize -t 2 -g 2 -i 0 -m 12 -p 1 -s gcn-optimize/cora/2s -c 1 -r 1 ./data/Cora/transformed/2s/cora.edge.preprocessed ./data/Cora/transformed/2s/cora.vertex.preprocessed ./data/Cora/transformed/2s/cora.part.preprocessed ./cognn-smallest/result/gcn-optimize/cora/2s/gcn_test_0.result.cora ./data/Cora/transformed/2s/cora_config.txt
+# ip netns exec B ./../../bin/gcn-optimize -t 2 -g 2 -i 1 -m 12 -p 1 -s gcn-optimize/cora/2s -c 1 -r 1 ./data/Cora/transformed/2s/cora.edge.preprocessed ./data/Cora/transformed/2s/cora.vertex.preprocessed ./data/Cora/transformed/2s/cora.part.preprocessed ./cognn-smallest/result/gcn-optimize/cora/2s/gcn_test_1.result.cora ./data/Cora/transformed/2s/cora_config.txt
+python tmp_run_cluster.py --smallest-cognn-efficiency
+# Now run the first process using GDB
+ip netns exec A gdb ./../../bin/gcn-optimize
+# Inside the GDB CLI
+run -t 2 -g 2 -i 0 -m 12 -p 1 -s gcn-optimize/cora/2s -c 1 -r 1 ./data/Cora/transformed/2s/cora.edge.preprocessed ./data/Cora/transformed/2s/cora.vertex.preprocessed ./data/Cora/transformed/2s/cora.part.preprocessed ./cognn-smallest/result/gcn-optimize/cora/2s/gcn_test_0.result.cora ./data/Cora/transformed/2s/cora_config.txt
+
+# Inside the second bash window of your container
+cd /work/Art/CoGNN/tools
+# Run the second process using GDB
+ip netns exec B gdb ./../../bin/gcn-optimize
+# Inside the GCB CLI
+run -t 2 -g 2 -i 1 -m 12 -p 1 -s gcn-optimize/cora/2s -c 1 -r 1 ./data/Cora/transformed/2s/cora.edge.preprocessed ./data/Cora/transformed/2s/cora.vertex.preprocessed ./data/Cora/transformed/2s/cora.part.preprocessed ./cognn-smallest/result/gcn-optimize/cora/2s/gcn_test_1.result.cora ./data/Cora/transformed/2s/cora_config.txt
+
+# If either of the two processes terminates abnormally, you can view some stack traces using the following command.
+bt
+```
+
+If either of the two processes terminates abnormally, please provide us with some vital debug information (like stack traces) produced by GDB. Thanks a lot.
 
 ## 4 Evaluation
 
