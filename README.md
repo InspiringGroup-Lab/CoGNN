@@ -363,6 +363,8 @@ As you have run all the experiments listed above, plot the results:
 
 ```bash
 cd /work/Art/CoGNN/tools/plot
+python -m pip install matplotlib tabulate
+mkdir -p figure/multi-party
 python plot_duration_and_comm_scale.py # Figure 6
 python plot_multiparty_accuracy.py # Figure 7, Table 11, 12
 python plot_duration_breakdown_and_comm.py # Table 1, 2, 7, 8, 9, 10
