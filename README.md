@@ -331,7 +331,7 @@ The evaluation options provided by `tmp_run_cluster.py` include:
 > Note that we also specify which option (setting) corresponds to which Figure/Table in our paper. 
 ```bash
 python tmp_run_cluster.py -h
-# usage: tmp_run_cluster.py [-h] [--cognn-opt-accuracy] [--fedgnn-accuracy] [--plaintextgnn-accuracy] [--graphsc-efficiency] [--cognn-opt-efficiency] [--cognn-unopt-efficiency] [--cognn-opt-inference] [--cognn-unopt-inference] [--smallest-cognn-efficiency]
+# usage: tmp_run_cluster.py [-h] [--cognn-opt-accuracy] [--fedgnn-accuracy] [--plaintextgnn-accuracy] [--graphsc-efficiency] [--cognn-opt-efficiency] [--cognn-unopt-efficiency] [--cognn-opt-inference] [--cognn-unopt-inference] [--smallest-cognn-efficiency] [--all]
 
 # Evaluate CoGNN and GraphSC models.
 
@@ -353,6 +353,7 @@ python tmp_run_cluster.py -h
 #                         Evaluate CoGNN unoptimized inference efficiency (~6h, Table 8, Table 10)
 #   --smallest-cognn-efficiency
 #                         Evaluate smallest CoGNN efficiency (~1min)
+#   --all                 Evaluate ALL (~3days)
 ```
 
 See the function annotations in `tmp_run_cluster.py` for the detailed information on each evaluation setting.
