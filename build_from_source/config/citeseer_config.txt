@@ -1,0 +1,10 @@
+num_layers : 2
+num_labels : 6
+input_dim : 3703
+hidden_dim : 16
+num_samples : 3312
+num_edges : 10016
+learning_rate : 0.8
+train_ratio : 0.2
+val_ratio : 0.2
+test_ratio : 0.6
