@@ -6,6 +6,7 @@ import psutil
 import time
 import pandas as pd
 import shutil
+import argparse
 
 executable_root_path = "./../../bin/"
 data_root_path = "./data/"
@@ -49,14 +50,14 @@ processList = []
 
 def setup_network(bandwidth, latency):
     # Clean first
-    curProc = subprocess.Popen(["sudo", "bash", "./scripts/clean_network.sh"])
+    curProc = subprocess.Popen(["bash", "./scripts/clean_network.sh"])
     curProc.wait()
     # Setup network
-    curProc = subprocess.Popen(["sudo", "bash", "./scripts/setup_network.sh", str(bandwidth), str(latency)])
+    curProc = subprocess.Popen(["bash", "./scripts/setup_network.sh", str(bandwidth), str(latency)])
     curProc.wait()
 
 def clean_network():
-    curProc = subprocess.Popen(["sudo", "bash", "./scripts/clean_network.sh"])
+    curProc = subprocess.Popen(["bash", "./scripts/clean_network.sh"])
     curProc.wait()
 
 nsList = ["A", "B", "C", "D", "E"]
@@ -127,29 +128,19 @@ def run_gcn_test(executable = "gcn-ss", dataset = "cora", numParts = 2):
     for i in range(numParts):
         cmd = []
         if isCluster:
-            cmd = ["sudo", "ip", "netns", "exec", nsList[i]]
+            cmd = ["ip", "netns", "exec", nsList[i]]
         cmd += [executable_path, "-t", str(numParts), "-g", str(numParts), "-i", str(i), "-m", str(iterations), "-p", "1", "-s", preprocess_setting]
         if not doPreprocess:
             cmd += ["-n", "1"]
         if isCluster:
             cmd += ["-c", "1"]
         cmd += ["-r", "1"]
-        # cmd += ["/home/zzh/project/test-GCN/FedGCNData/data/cora/cora.edge.small", "/home/zzh/project/test-GCN/FedGCNData/data/cora/cora.vertex.small",
-        #         "/home/zzh/project/test-GCN/FedGCNData/data/cora/cora.part.small", "./result/gcn_test/gcn_test"+"_"+str(i)+".result"]
-        # cmd += ["/home/zzh/project/test-GCN/FedGCNData/data/tiny/cora.edge.small", "/home/zzh/project/test-GCN/FedGCNData/data/tiny/cora.vertex.small",
-        #         "/home/zzh/project/test-GCN/FedGCNData/data/tiny/cora.part.small", "./result/gcn_test/gcn_test"+"_"+str(i)+".result"]
 
-        # cmd += ["/home/zzh/project/test-GCN/FedGCNData/data/" + dataset + "/" + dataset + ".edge.preprocessed", 
-        #         "/home/zzh/project/test-GCN/FedGCNData/data/" + dataset + "/" + dataset + ".vertex.preprocessed",
-        #         "/home/zzh/project/test-GCN/FedGCNData/data/" + dataset + "/" + dataset + ".part.preprocessed." + str(numParts) + "p", 
-        #         result_path + "gcn_test"+"_"+str(i)+".result." + dataset,
-        #         config_root_path + dataset + "_config.txt"]
-
-        cmd += [f"/home/zzh/project/SecGNN/data/{dataset_upper_case}/transformed/" + dataset + ".edge.preprocessed", 
-                f"/home/zzh/project/SecGNN/data/{dataset_upper_case}/transformed/" + dataset + ".vertex.preprocessed",
-                f"/home/zzh/project/SecGNN/data/{dataset_upper_case}/transformed/" + dataset + ".part.preprocessed." + str(numParts) + "p", 
+        cmd += [f"./data/{dataset_upper_case}/transformed/" + dataset + ".edge.preprocessed", 
+                f"./data/{dataset_upper_case}/transformed/" + dataset + ".vertex.preprocessed",
+                f"./data/{dataset_upper_case}/transformed/" + dataset + ".part.preprocessed." + str(numParts) + "p", 
                 result_path + "gcn_test"+"_"+str(i)+".result." + dataset,
-                f"/home/zzh/project/SecGNN/data/{dataset_upper_case}/transformed/" + dataset + "_config.txt"]
+                f"./data/{dataset_upper_case}/transformed/" + dataset + "_config.txt"]
 
         print(" ".join(cmd))
         log_f = open(log_path+"gcn_test"+"_"+dataset+"_"+str(i)+".log", 'w', encoding='utf-8')
@@ -187,13 +178,13 @@ def run_graphsc(executable = "test-graphsc", dataset = "cora", scaler = 2):
     for i in range(numParties):
         cmd = []
         if isCluster:
-            cmd = ["sudo", "ip", "netns", "exec", nsList[i]]
+            cmd = ["ip", "netns", "exec", nsList[i]]
         # partyId GNNConfigFile v_path e_path setting n_epochs do_prep is_cluster
         cmd += [executable_path, \
                 str(i), \
-                f"/home/zzh/project/SecGNN/data/{dataset_upper_case}/transformed/{scaler}s/" + dataset + "_config.txt", \
-                f"/home/zzh/project/SecGNN/data/{dataset_upper_case}/transformed/{scaler}s/" + dataset + ".vertex.preprocessed", \
-                f"/home/zzh/project/SecGNN/data/{dataset_upper_case}/transformed/{scaler}s/" + dataset + ".edge.preprocessed", \
+                f"./data/{dataset_upper_case}/transformed/{scaler}s/" + dataset + "_config.txt", \
+                f"./data/{dataset_upper_case}/transformed/{scaler}s/" + dataset + ".vertex.preprocessed", \
+                f"./data/{dataset_upper_case}/transformed/{scaler}s/" + dataset + ".edge.preprocessed", \
                 preprocess_setting, \
                 str(epochs), \
                 str(1) if doPreprocess else str(0), \
@@ -233,22 +224,18 @@ def run_cognn_scaler(executable = "gcn-ss", dataset = "cora", numParts = 2):
     for i in range(numParts):
         cmd = []
         if isCluster:
-            cmd = ["sudo", "ip", "netns", "exec", nsList[i]]
+            cmd = ["ip", "netns", "exec", nsList[i]]
         cmd += [executable_path, "-t", str(numParts), "-g", str(numParts), "-i", str(i), "-m", str(iterations), "-p", "1", "-s", preprocess_setting]
         if not doPreprocess:
             cmd += ["-n", "1"]
         if isCluster:
             cmd += ["-c", "1"]
         cmd += ["-r", "1"]
-        # cmd += ["/home/zzh/project/test-GCN/FedGCNData/data/cora/cora.edge.small", "/home/zzh/project/test-GCN/FedGCNData/data/cora/cora.vertex.small",
-        #         "/home/zzh/project/test-GCN/FedGCNData/data/cora/cora.part.small", "./result/gcn_test/gcn_test"+"_"+str(i)+".result"]
-        # cmd += ["/home/zzh/project/test-GCN/FedGCNData/data/tiny/cora.edge.small", "/home/zzh/project/test-GCN/FedGCNData/data/tiny/cora.vertex.small",
-        #         "/home/zzh/project/test-GCN/FedGCNData/data/tiny/cora.part.small", "./result/gcn_test/gcn_test"+"_"+str(i)+".result"]
-        cmd += [f"/home/zzh/project/SecGNN/data/{dataset_upper_case}/transformed/{numParts}s/" + dataset + ".edge.preprocessed", 
-                f"/home/zzh/project/SecGNN/data/{dataset_upper_case}/transformed/{numParts}s/" + dataset + ".vertex.preprocessed",
-                f"/home/zzh/project/SecGNN/data/{dataset_upper_case}/transformed/{numParts}s/" + dataset + ".part.preprocessed",
+        cmd += [f"./data/{dataset_upper_case}/transformed/{numParts}s/" + dataset + ".edge.preprocessed", 
+                f"./data/{dataset_upper_case}/transformed/{numParts}s/" + dataset + ".vertex.preprocessed",
+                f"./data/{dataset_upper_case}/transformed/{numParts}s/" + dataset + ".part.preprocessed",
                 result_path + "gcn_test"+"_"+str(i)+".result." + dataset,
-                f"/home/zzh/project/SecGNN/data/{dataset_upper_case}/transformed/{numParts}s/" + dataset + "_config.txt"]
+                f"./data/{dataset_upper_case}/transformed/{numParts}s/" + dataset + "_config.txt"]
         print(" ".join(cmd))
         log_f = open(log_path+"gcn_test"+"_"+dataset+"_"+str(i)+".log", 'w', encoding='utf-8')
         processList.append(subprocess.Popen(cmd, stdout=log_f))
@@ -264,136 +251,256 @@ def set_root_paths(application):
     elif application == "graphsc":
         executable_root_path = f"./../../build/bin/"
     data_root_path = f"./{str(application)}/data/"
-    ferret_ot_data_root_path = f"./{str(application)}/ot-data/"
+    # ferret_ot_data_root_path = f"./{str(application)}/ot-data/"
     result_root_path = f"./{str(application)}/result/"
     log_root_path = f"./{str(application)}/log/"
     config_root_path = "./config/"
     preprocess_root_path = f"./preprocess/"
     comm_root_path = f"./{str(application)}/comm/"
 
-# doPreprocess = True
-# # run_gcn_test("gcn-optimize", "citeseer")
-# # run_gcn_test("gcn-optimize", "pubmed", 2)
-# # run_gcn_test("gcn-ss", "cora", 3)
-# # run_gcn_test("gcn-optimize", "cora", 3)
-# # run_gcn_test("gcn-original", "cora")
+# Evaluate the accuracy of CoGNN-Opt for the three datasets and for different numbers of parties. Trained for 90 epochs under each setting. 
+# Note that, every 6 iterations correspond to 1 epoch of CoGNN-Opt, where the former 2 (GAS) iterations are in a forward pass and the latter 4 iterations are in a backward pass. 
+def eval_cognn_opt_accuracy():
+    global doPreprocess, iterations
+    set_root_paths("mp-accuracy")
+    doPreprocess = True
+    iterations = 540
+    list_num_parts = [2,3,4,5]
+    for cur_num_parts in list_num_parts:
+        run_gcn_test("gcn-optimize", "cora", cur_num_parts)
+        run_gcn_test("gcn-optimize", "citeseer", cur_num_parts)
+        run_gcn_test("gcn-optimize", "pubmed", cur_num_parts)
 
-# list_num_parts = [2]
-# iterations = 540
-# for cur_num_parts in list_num_parts:
-#     # run_gcn_test("gcn-optimize", "cora", cur_num_parts)
-#     # run_gcn_test("gcn-optimize", "citeseer", cur_num_parts)
-#     # run_gcn_test("gcn-optimize", "pubmed", cur_num_parts)
-# # iterations = 4
-# # for cur_num_parts in list_num_parts:
-# #     run_gcn_test("gcn-original", "cora", cur_num_parts)
-# #     run_gcn_test("gcn-original", "citeseer", cur_num_parts)
-# #     run_gcn_test("gcn-original", "pubmed", cur_num_parts)
+def eval_cognn_opt_accuracy_no_preprocess():
+    global doPreprocess, iterations
+    set_root_paths("mp-accuracy")
+    doPreprocess = False
+    iterations = 540
+    list_num_parts = [2]
+    for cur_num_parts in list_num_parts:
+        run_gcn_test("gcn-optimize", "cora", cur_num_parts)
+        run_gcn_test("gcn-optimize", "citeseer", cur_num_parts)
+        run_gcn_test("gcn-optimize", "pubmed", cur_num_parts)
 
-# set_root_paths("mp-accuracy")
-# doPreprocess = False
-# iterations = 540
-# list_num_parts = [5, 4, 3, 2]
-# for cur_num_parts in list_num_parts:
-#     # run_gcn_test("gcn-optimize", "cora", cur_num_parts)
-#     # run_gcn_test("gcn-optimize", "citeseer", cur_num_parts)
-#     run_gcn_test("gcn-optimize", "pubmed", cur_num_parts)
+# Evaluate the efficiency of CoGNN (under the efficiency setting for full graph computation) for the three datasets and for 2 parties. Trained for 1 epoch under each setting. 
+# Note that, every 4 iterations correspond to 1 epoch of CoGNN, where the former 2 (GAS) iterations are in a forward pass and the latter 2 iterations are in a backward pass. 
+def eval_cognn_unopt_accuracy():
+    global doPreprocess, iterations
+    set_root_paths("mp-accuracy")
+    doPreprocess = True
+    iterations = 4
+    list_num_parts = [2]
+    for cur_num_parts in list_num_parts:
+        run_gcn_test("gcn-original", "cora", cur_num_parts)
+        run_gcn_test("gcn-original", "citeseer", cur_num_parts)
+        run_gcn_test("gcn-original", "pubmed", cur_num_parts)
 
-# list_num_parts = [2]
-# list_datasets = ["cora", "citeseer", "pubmed"]
-# iterations = 2
+def eval_cognn_unopt_accuracy_no_preprocess():
+    global doPreprocess, iterations
+    set_root_paths("mp-accuracy")
+    doPreprocess = False
+    iterations = 4
+    list_num_parts = [2]
+    for cur_num_parts in list_num_parts:
+        run_gcn_test("gcn-original", "cora", cur_num_parts)
+        run_gcn_test("gcn-original", "citeseer", cur_num_parts)
+        run_gcn_test("gcn-original", "pubmed", cur_num_parts)
 
-# doPreprocess = True
-# for cur_num_parts in list_num_parts:
-#     for cur_dataset in list_datasets:
-#         run_gcn_test("gcn-inference-optimize", cur_dataset, cur_num_parts)
+def eval_fedgnn_accuracy():
+    set_root_paths("mp-accuracy")
+    list_num_parts = [2,3,4,5]
+    list_datasets = ["cora", "citeseer", "pubmed"]
+    log_path = log_root_path
+    my_makedir(log_path)
+    processList = []
+    for dataset in list_datasets:
+        for cur_num_parts in list_num_parts:
+            executable_path = "/work/Art/build/bin/test-fed-gcn"
+            cmd = [executable_path, str(dataset), str(cur_num_parts)]
+            print(" ".join(cmd))
+            log_f = open(log_path+"fed-gcn."+dataset+"."+str(cur_num_parts)+"p.log", 'w', encoding='utf-8')
+            processList.append(subprocess.Popen(cmd, stdout=log_f))
+    for process in processList:
+        process.wait()
 
-# doPreprocess = False
-# for cur_num_parts in list_num_parts:
-#     for cur_dataset in list_datasets:
-#         run_gcn_test("gcn-inference-optimize", cur_dataset, cur_num_parts)
-
-# >>>> test graphsc scale
+def eval_plaintextgnn_accuracy():
+    set_root_paths("mp-accuracy")
+    list_datasets = ["cora", "citeseer", "pubmed"]
+    log_path = log_root_path
+    my_makedir(log_path)
+    processList = []
+    for dataset in list_datasets:
+        executable_path = "/work/Art/build/bin/test-plaintext-gcn"
+        cmd = [executable_path, str(dataset)]
+        print(" ".join(cmd))
+        log_f = open(log_path+"plaintext-gcn."+dataset+".log", 'w', encoding='utf-8')
+        processList.append(subprocess.Popen(cmd, stdout=log_f))
+    for process in processList:
+        process.wait()
  
-# set_root_paths("graphsc")
-# # list_datasets = ["cora", "citeseer", "pubmed"]
-# list_datasets = ["cora", "citeseer", "pubmed"]
-# # list_scalers = [2, 5]
-# # doPreprocess = True
-# # for dataset in list_datasets:
-# #     for cur_scaler in list_scalers:
-# #         if cur_scaler == 5 and dataset == "citeseer":
-# #             continue
-# #         run_graphsc("test-graphsc", dataset, cur_scaler)
+# Evaluate the training efficiency of GraphSC for the three datasets and for different numbers of parties. Trained for 1 epoch under each setting. 
+# Note that, every 4 iterations correspond to 1 epoch of GraphSC, where the former 2 (GAS) iterations are in a forward pass and the latter 2 iterations are in a backward pass. 
+def eval_graphsc_efficiency():
+    global iterations, doPreprocess
+    set_root_paths("graphsc")
+    list_datasets = ["cora", "citeseer", "pubmed"]
+    list_scalers = [2, 3, 4, 5]
+    doPreprocess = True
+    for dataset in list_datasets:
+        for cur_scaler in list_scalers:
+            run_graphsc("test-graphsc", dataset, cur_scaler)
 
-# list_scalers = [2, 3, 4, 5]
-# doPreprocess = False
-# for dataset in list_datasets:
-#     for cur_scaler in list_scalers:
-#         run_graphsc("test-graphsc", dataset, cur_scaler)
+    list_scalers = [2, 3, 4, 5]
+    doPreprocess = False
+    for dataset in list_datasets:
+        for cur_scaler in list_scalers:
+            run_graphsc("test-graphsc", dataset, cur_scaler)
     
-# # >>>> test cognn scale
+# Evaluate the training efficiency of CoGNN-Opt for the three datasets and for different numbers of parties. Trained for 1 epoch under each setting. 
+# Note that, every 6 iterations correspond to 1 epoch of CoGNN-Opt, where the former 2 (GAS) iterations are in a forward pass and the latter 4 iterations are in a backward pass. 
+def eval_cognn_opt_efficiency():
+    global iterations, doPreprocess
+    list_scalers = [2, 3, 4, 5]
+    iterations = 6
+    list_datasets = ["cora", "citeseer", "pubmed"]
 
-# list_scalers = [2, 3, 4, 5]
-# iterations = 6
-# list_datasets = ["cora", "citeseer", "pubmed"]
+    set_root_paths("cognn-scale")
+    doPreprocess = True
+    for dataset in list_datasets:
+        for cur_scaler in list_scalers:
+            run_cognn_scaler("gcn-optimize", dataset, cur_scaler)
 
-# set_root_paths("cognn-scale")
-# # doPreprocess = True
-# # for dataset in list_datasets:
-# #     for cur_scaler in list_scalers:
-# #         run_cognn_scaler("gcn-optimize", dataset, cur_scaler)
+    doPreprocess = False
+    for dataset in list_datasets:
+        for cur_scaler in list_scalers:
+            run_cognn_scaler("gcn-optimize", dataset, cur_scaler)
 
-# doPreprocess = False
-# for dataset in list_datasets:
-#     for cur_scaler in list_scalers:
-#         run_cognn_scaler("gcn-optimize", dataset, cur_scaler)
+# Evaluate the training efficiency of CoGNN for the three datasets and for different numbers of parties. Trained for 1 epoch under each setting. 
+# Note that, every 4 iterations correspond to 1 epoch of CoGNN, where the former 2 (GAS) iterations are in a forward pass and the latter 2 iterations are in a backward pass.
+def eval_cognn_unopt_efficiency():
+    global iterations, doPreprocess
+    list_scalers = [2, 3, 4, 5]
+    iterations = 4
+    list_datasets = ["cora", "citeseer", "pubmed"]
 
-# list_scalers = [2, 3, 4, 5]
-# iterations = 4
-# list_datasets = ["cora", "citeseer", "pubmed"]
+    set_root_paths("cognn-scale")
+    doPreprocess = True
+    for dataset in list_datasets:
+        for cur_scaler in list_scalers:
+            run_cognn_scaler("gcn-original", dataset, cur_scaler)
 
-# set_root_paths("cognn-scale")
-# # doPreprocess = True
-# # for dataset in list_datasets:
-# #     for cur_scaler in list_scalers:
-# #         run_cognn_scaler("gcn-original", dataset, cur_scaler)
+    doPreprocess = False
+    for dataset in list_datasets:
+        for cur_scaler in list_scalers:
+            run_cognn_scaler("gcn-original", dataset, cur_scaler)
 
-# doPreprocess = False
-# for dataset in list_datasets:
-#     for cur_scaler in list_scalers:
-#         run_cognn_scaler("gcn-original", dataset, cur_scaler)
+# Evaluate the inference efficiency of CoGNN-Opt for the three datasets and for 2 parties. Full-graph inference for 1 time under each setting. 
+# Note that, every 2 iterations correspond to 1 inference of CoGNN-Opt.
+def eval_cognn_opt_inference_efficiency():
+    global iterations, doPreprocess
+    set_root_paths("inference")
 
-# set_root_paths("mp-accuracy")
-# doPreprocess = False
-# iterations = 540
-# list_datasets = ["citeseer"]
-# for dataset in list_datasets:
-#     run_gcn_test("gcn-optimize", dataset, 2)
+    list_num_parts = [2]
+    list_datasets = ["cora", "citeseer", "pubmed"]
+    iterations = 2
 
-# iterations = 4
-# doPreprocess = True
-# list_datasets = ["cora", "pubmed", "citeseer"]
-# for dataset in list_datasets:
-#     run_gcn_test("gcn-original", dataset, 2)
-# doPreprocess = False
-# for dataset in list_datasets:
-#     run_gcn_test("gcn-original", dataset, 2)
+    doPreprocess = True
+    for cur_num_parts in list_num_parts:
+        for cur_dataset in list_datasets:
+            run_gcn_test("gcn-inference-optimize", cur_dataset, cur_num_parts)
 
-set_root_paths("inference")
+    doPreprocess = False
+    for cur_num_parts in list_num_parts:
+        for cur_dataset in list_datasets:
+            run_gcn_test("gcn-inference-optimize", cur_dataset, cur_num_parts)
 
-list_num_parts = [2]
-list_datasets = ["cora", "citeseer", "pubmed"]
-iterations = 2
+# Evaluate the inference efficiency of CoGNN for the three datasets and for 2 parties. Full-graph inference for 1 time under each setting. 
+# Note that, every 2 iterations correspond to 1 inference of CoGNN.
+def eval_cognn_unopt_inference_efficiency():
+    global iterations, doPreprocess
+    set_root_paths("inference")
 
-doPreprocess = True
-for cur_num_parts in list_num_parts:
-    for cur_dataset in list_datasets:
-        run_gcn_test("gcn-inference-optimize", cur_dataset, cur_num_parts)
-        run_gcn_test("gcn-original", cur_dataset, cur_num_parts)
+    list_num_parts = [2]
+    list_datasets = ["cora", "citeseer", "pubmed"]
+    iterations = 2
 
-doPreprocess = False
-for cur_num_parts in list_num_parts:
-    for cur_dataset in list_datasets:
-        run_gcn_test("gcn-inference-optimize", cur_dataset, cur_num_parts)
-        run_gcn_test("gcn-original", cur_dataset, cur_num_parts)
+    doPreprocess = True
+    for cur_num_parts in list_num_parts:
+        for cur_dataset in list_datasets:
+            run_gcn_test("gcn-original", cur_dataset, cur_num_parts)
+
+    doPreprocess = False
+    for cur_num_parts in list_num_parts:
+        for cur_dataset in list_datasets:
+            run_gcn_test("gcn-original", cur_dataset, cur_num_parts)
+
+# The smallest training test corresponds to one specific evaluation setting in our efficiency test, i.e., 2-party training, Cora dataset, 2 epochs with preprocessing.
+def smallest_eval_cognn_efficiency():
+    global iterations, doPreprocess
+    list_scalers = [2]
+    iterations = 12
+    list_datasets = ["cora"]
+
+    set_root_paths("cognn-smallest")
+    doPreprocess = True
+    for dataset in list_datasets:
+        for cur_scaler in list_scalers:
+            run_cognn_scaler("gcn-optimize", dataset, cur_scaler)
+
+# Define the main function to parse command line arguments and call the appropriate functions
+def main():
+    parser = argparse.ArgumentParser(description='Evaluate CoGNN and GraphSC models.')
+    parser.add_argument('--cognn-opt-accuracy', action='store_true', help='Evaluate CoGNN-Opt accuracy')
+    parser.add_argument('--cognn-opt-accuracy-no-preprocess', action='store_true', help='Evaluate CoGNN-Opt accuracy, without preprocessing')
+    parser.add_argument('--cognn-unopt-accuracy', action='store_true', help='Evaluate CoGNN unoptimized efficiency under the accuracy setting')
+    parser.add_argument('--cognn-unopt-accuracy-no-preprocess', action='store_true', help='Evaluate CoGNN unoptimized efficiency under the accuracy setting, without preprocessing')
+    parser.add_argument('--fedgnn-accuracy', action='store_true', help='Evaluate FL-based GNN accuracy')
+    parser.add_argument('--plaintextgnn-accuracy', action='store_true', help='Evaluate Plaintext GNN accuracy')
+    parser.add_argument('--graphsc-efficiency', action='store_true', help='Evaluate GraphSC efficiency')
+    parser.add_argument('--cognn-opt-efficiency', action='store_true', help='Evaluate CoGNN-Opt efficiency')
+    parser.add_argument('--cognn-unopt-efficiency', action='store_true', help='Evaluate CoGNN unoptimized efficiency')
+    parser.add_argument('--cognn-opt-inference', action='store_true', help='Evaluate CoGNN-Opt inference efficiency')
+    parser.add_argument('--cognn-unopt-inference', action='store_true', help='Evaluate CoGNN unoptimized inference efficiency')
+    parser.add_argument('--smallest-cognn-efficiency', action='store_true', help='Evaluate smallest CoGNN efficiency')
+    parser.add_argument('--all', action='store_true', help='Evaluate ALL')
+    args = parser.parse_args()
+
+    if args.cognn_opt_accuracy:
+        eval_cognn_opt_accuracy()
+    if args.cognn_opt_accuracy_no_preprocess:
+        eval_cognn_opt_accuracy_no_preprocess()
+    if args.cognn_unopt_accuracy:
+        eval_cognn_unopt_accuracy()
+    if args.cognn_unopt_accuracy_no_preprocess:
+        eval_cognn_unopt_accuracy_no_preprocess()
+    if args.fedgnn_accuracy:
+        eval_fedgnn_accuracy()
+    if args.plaintextgnn_accuracy:
+        eval_plaintextgnn_accuracy()
+    if args.graphsc_efficiency:
+        eval_graphsc_efficiency()
+    if args.cognn_opt_efficiency:
+        eval_cognn_opt_efficiency()
+    if args.cognn_unopt_efficiency:
+        eval_cognn_unopt_efficiency()
+    if args.cognn_opt_inference:
+        eval_cognn_opt_inference_efficiency()
+    if args.cognn_unopt_inference:
+        eval_cognn_unopt_inference_efficiency()
+    if args.smallest_cognn_efficiency:
+        smallest_eval_cognn_efficiency()
+    if args.all:
+        eval_cognn_opt_accuracy()
+        eval_cognn_opt_accuracy_no_preprocess()
+        eval_cognn_unopt_accuracy()
+        eval_cognn_unopt_accuracy_no_preprocess()
+        eval_fedgnn_accuracy()
+        eval_plaintextgnn_accuracy()
+        eval_graphsc_efficiency()
+        eval_cognn_opt_efficiency()
+        eval_cognn_unopt_efficiency()
+        eval_cognn_opt_inference_efficiency()
+        eval_cognn_unopt_inference_efficiency()
+
+if __name__ == "__main__":
+    main()

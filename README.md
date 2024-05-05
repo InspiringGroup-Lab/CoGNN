@@ -316,6 +316,7 @@ Now let's head for the full evaluations corresponding to the key results obtaine
 
 **Cautions:**
 - After running each part of the evaluation, you'd better **clean the `preprocess/` folder**. Otherwise you disk space would soon be consumed up.
+    - `--cognn-opt-accuracy-no-preprocess` should be run after `--cognn-opt-accuracy`, without cleaning the `preprocess/` folder. Similarly, `--cognn-unopt-accuracy-no-preprocess` should be run after `--cognn-unopt-accuracy`, without cleaning the `preprocess/` folder.
 - **DO NOT** clean the log and comm folders, since they would be used for plot.
 
 Set up a container and cd to our evaluation scripts:
@@ -331,14 +332,19 @@ The evaluation options provided by `tmp_run_cluster.py` include:
 > Note that we also specify which option (setting) corresponds to which Figure/Table in our paper. 
 ```bash
 python tmp_run_cluster.py -h
-# usage: tmp_run_cluster.py [-h] [--cognn-opt-accuracy] [--fedgnn-accuracy] [--plaintextgnn-accuracy] [--graphsc-efficiency] [--cognn-opt-efficiency] [--cognn-unopt-efficiency] [--cognn-opt-inference] [--cognn-unopt-inference] [--smallest-cognn-efficiency] [--all]
+# usage: tmp_run_cluster.py [-h] [--cognn-opt-accuracy] [--cognn-opt-accuracy-no-preprocess] [--cognn-unopt-accuracy] [--cognn-unopt-accuracy-no-preprocess] [--fedgnn-accuracy] [--plaintextgnn-accuracy] [--graphsc-efficiency] [--cognn-opt-efficiency] [--cognn-unopt-efficiency] [--cognn-opt-inference] [--cognn-unopt-inference] [--smallest-cognn-efficiency] [--all]
 
 # Evaluate CoGNN and GraphSC models.
 
 # optional arguments:
 #   -h, --help            show this help message and exit
 #   --cognn-opt-accuracy  Evaluate CoGNN-Opt accuracy (~16h, Figure 7, Table 1, Table 9)
-#   --cognn-unopt-accuracy  Evaluate CoGNN-Opt effiency under the accuracy setting (~6h, Table 7, Table 9)
+#   --cognn-opt-accuracy-no-preprocess  
+#                         Evaluate CoGNN-Opt accuracy, without preprocessing (~6h, Table 9)
+#   --cognn-unopt-accuracy  
+#                         Evaluate CoGNN effiency under the accuracy setting (~6h, Table 7, Table 9)
+#   --cognn-unopt-accuracy-no-preprocess  
+#                         Evaluate CoGNN effiency under the accuracy setting (~5h, Table 9)
 #   --fedgnn-accuracy     Evaluate FL-based GNN accuracy (~30min, Figure 7)
 #   --plaintextgnn-accuracy
 #                         Evaluate Plaintext GNN accuracy (~1h, Figure 7)
