@@ -26,18 +26,28 @@ def sum_consecutive_durations(iter_duration, num_iter_per_epoch):
     return sums
 
 def extract_durations(file_path, match_lines):
+    # print(file_path)
     # Arrays to store the durations
     iter_duration = []
-    
+
     # Open the file and read line by line
     with open(file_path, 'r') as file:
+        lines = file.readlines()
         cnt = 0
-        for line in file:
+        for index, line in enumerate(lines):
             if '::iteration took' in line:
                 # Extract and store the border test set accuracy
                 # print(line)
                 cnt+=1
-                cur_duration = float(line.split(' ')[2].strip())
+                try:
+                    cur_duration = float(line.split(' ')[2].strip())
+                except:
+                    cur_index = index
+                    while True:
+                        if 'seconds' in lines[cur_index]:
+                            cur_duration = float(lines[cur_index].split(" seconds")[0].split(' ')[-1])
+                            break
+                        cur_index += 1
                 iter_duration.append(cur_duration)
                 if cnt >= match_lines:
                     break
@@ -89,7 +99,7 @@ n_epochs = 90
 avg_epochs = 1
 num_iter_per_epoch = 6
 cognn_log_file = []
-figure_root_path = "/home/zzh/project/test-GCN/Art/CoGNN/tools/plot/figure/multi-party/"
+figure_root_path = "/work/Art/CoGNN/tools/plot/figure/multi-party/"
 executable = "gcn-optimize"
 cognn_log_root_path = "./../log/"
 cognn_comm_root_path = "./../comm/"

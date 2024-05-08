@@ -76,9 +76,9 @@ formatted_datasets = ["Cora", "CiteSeer", "PubMed"]
 n_parts_list = [2, 3, 4, 5]
 n_epochs = 90
 cognn_log_file = []
-fedgnn_log_root_path = "/home/zzh/project/test-GCN/Art/build/bin/mp-accuracy/"
-plaingnn_log_root_path = "/home/zzh/project/test-GCN/Art/build/bin/mp-accuracy/"
-figure_root_path = "/home/zzh/project/test-GCN/Art/CoGNN/tools/plot/figure/multi-party/"
+fedgnn_log_root_path = "/work/Art/CoGNN/tools/mp-accuracy/log/"
+plaingnn_log_root_path = "/work/Art/CoGNN/tools/mp-accuracy/log/"
+figure_root_path = "/work/Art/CoGNN/tools/plot/figure/multi-party/"
 executable = "gcn-optimize"
 cognn_log_root_path = "./../mp-accuracy/log/"
 

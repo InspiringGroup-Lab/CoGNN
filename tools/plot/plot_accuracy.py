@@ -76,9 +76,9 @@ fedgnn_test_acc = []
 fedgnn_border_acc = []
 plaingnn_test_acc = []
 plaingnn_border_acc = []
-fedgnn_log_root_path = "/home/zzh/project/test-GCN/Art/build/bin/mp-accuracy/"
-plaingnn_log_root_path = "/home/zzh/project/test-GCN/Art/build/bin/mp-accuracy/"
-figure_root_path = "/home/zzh/project/test-GCN/Art/CoGNN/tools/plot/figure/"
+fedgnn_log_root_path = "/work/Art/CoGNN/tools/mp-accuracy/log/"
+plaingnn_log_root_path = "/work/Art/CoGNN/tools/mp-accuracy/log/"
+figure_root_path = "/work/Art/CoGNN/tools/plot/figure/"
 executable = "gcn-optimize"
 cognn_log_root_path = "./../mp-accuracy/log/"
 

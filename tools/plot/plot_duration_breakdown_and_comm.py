@@ -26,11 +26,22 @@ def extract_cognn_durations(file_path, tag, num_epochs):
     
     # Open the file and read line by line
     with open(file_path, 'r') as file:
-        for line in file:
+        lines = file.readlines()
+        for index, line in enumerate(lines):
             if '::' + tag + ' took' in line:
                 # Extract and store the border test set accuracy
                 # print(line)
-                cur_duration = float(line.split(' took ')[1].split(' ')[0].strip())
+                # cur_duration = float(line.split(' took ')[1].split(' ')[0].strip())
+                try:
+                    cur_duration = float(line.split(' took ')[1].split(' ')[0].strip())
+                except:
+                    cur_index = index
+                    while True:
+                        if 'seconds' in lines[cur_index]:
+                            cur_duration = float(lines[cur_index].split(" seconds")[0].split(' ')[-1])
+                            print(cur_duration)
+                            break
+                        cur_index += 1                    
                 duration.append(cur_duration)
     
     return sum(duration) / num_epochs
@@ -80,7 +91,7 @@ n_epochs = 90
 avg_epochs = 1
 num_iter_per_epoch = 6
 cognn_log_file = []
-figure_root_path = "/home/zzh/project/test-GCN/Art/CoGNN/tools/plot/figure/multi-party/"
+figure_root_path = "/work/Art/CoGNN/tools/plot/figure/multi-party/"
 executable = "gcn-optimize"
 cognn_log_root_path = "./../mp-accuracy/log/"
 cognn_comm_root_path = "./../mp-accuracy/comm/"
@@ -96,6 +107,7 @@ def get_duration(n_parts, cur_preprocess_epochs, cur_online_epochs):
         for i in range(n_parts):
             cur_log_file = cognn_log_root_path + executable + "/" + dataset + "/" + str(n_parts) + "p/" + "gcn_test_" + dataset + "_" + str(i) + ".log"
             cur_duration_list = []
+            # print(cur_log_file)
             cur_duration_list.append(extract_cognn_durations(cur_log_file, duration_tag_list[0], cur_preprocess_epochs[d])) 
             for duration_tag in duration_tag_list[1:]:
                 cur_duration = extract_cognn_durations(cur_log_file, duration_tag, cur_online_epochs)
