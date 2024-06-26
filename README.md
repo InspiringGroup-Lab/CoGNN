@@ -1,4 +1,4 @@
-CoGNN Artifact Evaluation Guidance
+CoGNN
 ============
 
 > *Cautions*: 
@@ -7,7 +7,7 @@ CoGNN Artifact Evaluation Guidance
 > - Running a smallest test of our artifacts needs around 1 minute, but fully running all the experiments in our paper might take 3 days or more (measured using NVIDIA A100).
 > - Please make sure of these details before deciding to read ahead.
 
-This document is dedicated to the Artifact Evaluation Committee (AEC) of our paper *CoGNN: Towards Secure and Efficient Collaborative Graph Learning*. It provides some necessary background information about the paper and contains step-by-step instructions for setting up the artifacts and running the vital experiments in our paper. Here is the table of contents:
+This document is dedicated to the audience of our paper *CoGNN: Towards Secure and Efficient Collaborative Graph Learning* ([DOI of published version](https://doi.org/10.1145/3658644.3670300), [full version](https://eprint.iacr.org/2024/987), [Zenodo record](https://zenodo.org/records/11210094)), which is accepted by ACM CCS 2024. It provides some necessary background information about the paper and contains step-by-step instructions for setting up the artifacts and running the vital experiments in our paper. Here is the table of contents:
 - [0 Background](#0-background): some brief background information about CoGNN;
 - [1 Introduction](#1-introduction): introduce these artifacts and their organization;
 - [2 Environment Requirements](#2-environment-requirements): the required hardware resources and software environments;
@@ -159,9 +159,8 @@ sudo docker pull cbackyx/cognn-ae-build:<tagname>
 Now build the artifacts from source (~10min):
 
 ```bash
-git clone https://github.com/CoGNN-anon/CoGNN.git
+git clone https://github.com/InspiringGroup-Lab/CoGNN.git
 cd CoGNN
-git checkout AE
 cd build_from_source
 # You might modify the version of the base image before you run the following command.
 sudo docker build -t cbackyx/cognn-ae-build-test:v1 .
@@ -365,126 +364,6 @@ python plot_duration_and_comm_scale.py # Figure 6
 python plot_multiparty_accuracy.py # Figure 7, Table 11, 12
 python plot_duration_breakdown_and_comm.py # Table 1, 2, 7, 8, 9, 10
 python plot_message_passing_comm.py # Table 6
-```
-
------
-
-The following scripts tells how to set up dependencies of CoGNN and CoGNN itself from scratch. They are not recommended!
-
-## -1 Set up the dependencies
-
-### -1.1 Environment Requirement
-
-- Ubuntu 20.04
-- g++/gcc 9.4.0
-- GNU Make 4.2.1
-- cmake 3.25.1
-- Python 3.9.13
-- CUDA Driver Version: 535.113.01  CUDA Version: 12.2
-
-### -1.2 Set up the workspace
-
-```bash
-mkdir Artifact && cd Artifact
-mkdir Art
-```
-
-### -1.3 Install MPC dependencies.
-
-Install EMP.
-
-```bash
-cd Artifact
-git clone https://github.com/CoGNN-anon/MPC.git
-cd MPC
-python install.py --deps --tool --ot --sh2pc
-```
-
-Install libOTe.
-
-```bash
-cd Artifact/Art/
-git clone https://github.com/osu-crypto/libOTe.git
-cd libOTe
-git checkout 3a40823
-git submodule update --init
-# Open the serialization module for boost, in 'libOTe/cryptoTools/thirdparty/getBoost.py'. Then:
-python build.py --setup --boost --relic
-python build.py --install=./../lilibOTe -D ENABLE_RELIC=ON -D ENABLE_NP=ON -D ENABLE_KOS=ON -D ENABLE_IKNP=ON -D ENABLE_OOS=ON -D ENABLE_SILENTOT=ON
-```
-
-Install SCI-SilentOT.
-
-```bash
-sudo apt install libgmp-dev libssl-dev
-cd Artifact/MPC/
-git clone https://github.com/CoGNN-anon/SCI-SilentOT.git
-cd ./SCI-SilentOT/SCI
-bash scripts/build-deps.sh
-mkdir build && cd build
-cmake -DCMAKE_INSTALL_PREFIX=./install -DCMAKE_FIND_DEBUG_MODE=ON .. -DCMAKE_BUILD_TYPE=Debug -DSCI_BUILD_NETWORKS=OFF -DSCI_BUILD_TESTS=ON -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl -DCMAKE_PREFIX_PATH=$(pwd)/../deps/build -DUSE_APPROX_RESHARE=ON
-cmake --build . --target install --parallel
-```
-
-Install ophelib (Paillier).
-
-```bash
-sudo apt install build-essential m4 libtool-bin libgmp-dev libntl-dev
-cd Artifact/MPC
-git clone https://github.com/CoGNN-anon/ophelib.git
-cd ophelib
-mkdir build && cd build
-cmake .. -DCMAKE_INSTALL_PREFIX=./install
-make -j
-cmake --build . --target install --parallel
-```
-
-Install troy (GPU-based FHE).
-
-```bash
-cd Artifact/MPC
-git clone https://github.com/CoGNN-anon/troy.git
-cd troy
-mkdir build && cd build
-cmake .. -DCMAKE_INSTALL_PREFIX=./install
-make -j
-cmake --build . --target install --parallel
-```
-
-### -1.4 Set Up CMake Dependencies
-
-```bash
-cd Artifact/MPC
-sudo cp -r cmake/* /usr/local/lib/cmake/
-```
-
-## -2 Set up CoGNN
-
-> Note that, you might have to manually set some paths in the CMakeList.txt according to your environment.
-
-```bash
-cd Artifact/Art/
-
-git clone https://github.com/CoGNN-anon/CoGNN.git
-git clone https://github.com/CoGNN-anon/Task-Worker.git
-
-mkdir build && cd build
-cmake .. -DTHREADING=ON
-make -j8
-```
-
-## -3 Prepare the datasets
-
-```bash
-cd Artifact/Art/CoGNN/tools
-python data_transform.py
-```
-
-## -4 Run evaluation
-
-```bash
-cd Artifact/Art/CoGNN/tools
-python tmp_run_cluster.py
 ```
 
 
