@@ -4,7 +4,7 @@ CoGNN Artifact Evaluation Guidance
 > *Cautions*: 
 > - Evaluating these artifacts requires an x86_64 Linux Server (at least 128GB RAM, 512GB spare disk) equipped with NVIDIA GPU (at least 16GB Memory).
 > - We pack our artifacts in a Docker image. The compressed size is around 4~6GB. We provide instructions for setting up CUDA support for your Docker.  
-> - Running a smallest test of our artifacts needs around 1 minute, but fully running all the experiments in our paper might take 3 days or more.
+> - Running a smallest test of our artifacts needs around 1 minute, but fully running all the experiments in our paper might take 3 days or more (measured using NVIDIA A100).
 > - Please make sure of these details before deciding to read ahead.
 
 This document is dedicated to the Artifact Evaluation Committee (AEC) of our paper *CoGNN: Towards Secure and Efficient Collaborative Graph Learning*. It provides some necessary background information about the paper and contains step-by-step instructions for setting up the artifacts and running the vital experiments in our paper. Here is the table of contents:
@@ -12,7 +12,7 @@ This document is dedicated to the Artifact Evaluation Committee (AEC) of our pap
 - [1 Introduction](#1-introduction): introduce these artifacts and their organization;
 - [2 Environment Requirements](#2-environment-requirements): the required hardware resources and software environments;
 - [3 Set Up](#3-set-up): set up the artifacts by downloading the Docker image we provide;
-    - [Troubleshooting](#troubleshooting): help us troubleshooting using GDB if your outputs are not as expected;
+    - [Troubleshooting](#troubleshooting): help us troubleshoot using GDB if your outputs are not as expected;
 - [4 Evaluation](#4-evaluation): steps to run each part of the experiments.  
 
 
@@ -110,7 +110,7 @@ Here is the organization of the artifacts in the Docker image we provide:
 
 ## 2 Environment Requirements
 
-The source code of CoGNN is available in the repositories owned by [this anonymous Github account](https://github.com/CoGNN-anon). However, since building each part of the artifacts along with the dependencies is non-trivial, we provide an out-of-the-box Docker image for convenience.
+The source code of CoGNN is available in the repositories owned by [this anonymous Github account](https://github.com/CoGNN-anon). However, since building each part of the artifacts along with the dependencies is non-trivial, we provide a build-from-source Docker image for convenience.
 
 We summarize the required hardware resources and software conditions for running the Docker image we provide.
 
@@ -145,44 +145,33 @@ Please refer to [link 1](https://docs.nvidia.com/datacenter/cloud-native/contain
 
 ## 3 Set Up
 
-As long as you have installed Docker with CUDA support, you can pull the image we prepared. Our image is based on the Ubuntu-CUDA images provided by NIVIDIA. Since these images are bound to specific versions of CUDA runtime, we provide multiple image versions based on different versions of CUDA runtimes for the convenience of the AEC. The version information is summarized here:
+As long as you have installed Docker with CUDA support, you can pull the image we prepared. Our image is based on the Ubuntu-CUDA images provided by NIVIDIA. Since these images are bound to specific versions of CUDA runtime, we provide multiple image versions based on different versions of CUDA runtimes for your convenience. The version information is summarized here:
 - v1 is based on nvidia/cuda:12.0.0-devel-ubuntu20.04
-- v2 is based on nvidia/cuda:12.4.0-devel-ubuntu20.04
-- v3 is based on nvidia/cuda:12.3.2-devel-ubuntu20.04
 - v4 is based on nvidia/cuda:11.6.1-devel-ubuntu20.04
 
-Please pull the proper version according to CUDA driver version and CUDA version you have. (The compressed image size is around 4~7GB. The duration (~10min or more) depends on your network condition.)
+Please pull the proper version according to CUDA driver version and CUDA version you have. (The compressed image size is around 4~7GB. The duration of pulling (~10min or more) depends on your network condition.)
 Typically the CUDA runtime version has to be smaller than the CUDA toolkit version of your host machine.
 
 ```bash
-sudo docker pull cbackyx/cognn-ae:<tagname>
+sudo docker pull cbackyx/cognn-ae-build:<tagname>
 ```
 
-*Caution:* In case that none of the image versions above satisfy your need, we also provide a workaround by partially building the image on your own using Dockerfile.
-The idea is to copy the artifacts in our image to the image that you are going to build. (This building process would take longer time, also depending on your network condition.)
-Ignore this if we have already provided your desired version.
+Now build the artifacts from source (~10min):
 
 ```bash
-# Pull one of the images above first and run.
-sudo docker pull cbackyx/cognn-ae:v1
-sudo docker run -it --rm --privileged --security-opt apparmor=unconfined --gpus all cbackyx/cognn-ae:v1 /bin/bash
-# Now you can see your <container-id>. Copy it.
-# Open another terminal on your host machine (not in the container!).
-# cd to a proper clean workspace and copy the Dockerfile here. Then:
-mkdir Container-Artifact
-# Copy the artifacts from the container you just started.
-sudo docker cp <container-id>:/work ./Container-Artifact/
-# Modify the first line of the Dockerfile to select the CUDA runtime version you want. (You MUST use a devel version, since we need CUDA headers for compilation.)
-# Please refer to https://hub.docker.com/r/nvidia/cuda/tags?page=1&page_size=&name=devel-ubuntu20.04&ordering=
-# Now you are ready to build the image.
-sudo docker build -t cbackyx/cognn-ae:tagname .
+git clone https://github.com/CoGNN-anon/CoGNN.git
+cd CoGNN
+git checkout AE
+cd build_from_source
+# You might modify the version of the base image before you run the following command.
+sudo docker build -t cbackyx/cognn-ae-build-test:v1 .
 ```
 
-Now let's have a quick check on the artifacts.
+Now let's have a quick check on the built artifacts.
 Build the executables that we need (~5s):
 ```bash
-# Enter the container first. Please select the proper tagname for yourself.
-sudo docker run -it --rm --privileged --security-opt apparmor=unconfined --gpus all cbackyx/cognn-ae:<tagname> /bin/bash
+# Enter the container first.
+sudo docker run -it --rm --privileged --security-opt apparmor=unconfined --gpus all cbackyx/cognn-ae-build-test:v1 /bin/bash
 # Check if your GPU can be accessed
 nvidia-smi 
 # Check if the artifacts can be built
@@ -280,7 +269,7 @@ Using the example of the smallest test, here we introduce how to collect the GDB
 
 ```bash
 # Start two bash windows for the container. Each window is for running a party process.
-sudo docker run -it --rm --privileged --security-opt apparmor=unconfined --gpus all cbackyx/cognn-ae:<tagname> /bin/bash
+sudo docker run -it --rm --privileged --security-opt apparmor=unconfined --gpus all cbackyx/cognn-ae-build-test:v1 /bin/bash
 sudo docker exec -it <your-container-id> /bin/bash
 
 # Inside the first bash window of your container
